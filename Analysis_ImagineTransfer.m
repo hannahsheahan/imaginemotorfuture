@@ -5,6 +5,8 @@
 % when planning and executing them.
 
 % Group 1: imagery transfer (fixation)
+% Group 2: no imagery transfer (fixation)
+
 
 % Author: Hannah Sheahan, sheahan.hannah@gmail.com
 % Date:   Feb 2018
@@ -255,19 +257,19 @@ for group = 1:ngroups  % load in by group because 'planning only' and 'control' 
     % Fixation misstrials (for eyetracked groups only)
     tolerance = 3;   % cm
     nimagine = sum(((field(:,S.FIELD_VISCOUS)==1) & D.subj==1) & exposurephase);  % same for each subject, so use subj==1 as example
-     
-    if group<3   
+    
+    if group<3
         ind = (misstrialdata.FieldType==1) & (misstrialdata.PhaseIndex<78);       % imagining trials in exposure phase (do not include transfer phase)
         
         % measure %overshoot relative to all attempts at imagining trials
         for i=1:nsubj
-            nimaginesub(i) = nimagine + sum(ind & misstrialdata.subj==i);    
+            nimaginesub(i) = nimagine + sum(ind & misstrialdata.subj==i);
         end
         
         eyehittarget = findfirst((sqrt(eyepos(2,:,:).^2 + eyepos(1,:,:).^2) > tolerance),3);  % overshoot of via target in rotated y direction
-        handhittarget = findfirst(handpos(2,:,:) > tolerance,3);  
-       
-        % remove trials that were blinks or where eyetracker loses eye 
+        handhittarget = findfirst(handpos(2,:,:) > tolerance,3);
+        
+        % remove trials that were blinks or where eyetracker loses eye
         blink = squeeze(findfirst(eyepos(1,:,:)>100 | eyepos(2,:,:)>100,3));
         eyehittarget(blink>0) = 0;
         eyehittarget(eyehittarget<300) = 0;  % don't count instances where fixation is broken before 'go' cue.
@@ -278,19 +280,19 @@ for group = 1:ngroups  % load in by group because 'planning only' and 'control' 
             nerrsaccadeovershoot(i) = sum(eyehittarget(trials)~=0);                     % number of times eye moved to target on imagining trials
             nerrhandovershoot(i) = sum(handhittarget(trials)~=0);                       % number of times hand reached to target on imagining trials
         end
-             
+        
         % percentage of imagining trials that eye-moves or hand-moves
         % overshot central target (consider both regular overshoots and
         % overshoots on saccade error trials).
         timing.percerrsaccadetotarget = nerrsaccadeovershoot./nimaginesub;
         timing.nerrsaccadeovershoot = nerrsaccadeovershoot;
         F.misstrialdata = misstrialdata;
-       
+        
     else
         % a few subjects here have misstrialdata saved separately, so make
         % sure this is included for hand overshoot data
         if isfield(D,'MissTrialData')
-           
+            
             misstrialdata = D.MissTrialData;
             ind = misstrialdata.FieldType==1;   % imagining trials in exposure phase
             
@@ -433,10 +435,7 @@ speed_series = [];
 speed_error = [];
 imduration = [];
 execduration = [];
-%nmpe_scalefactor = 52.4706;   % for the Neuron study
-nmpe_scalefactor = 44.19;      % 4 groups, will need updating later with final 3 subjects
-colours = ColourSelect('ColourSelect.jpg',5);
-colours(3,:) = [0.1,0.8,0.1];
+colours = ColourSelect('ColourSelect.jpg',ngroups);
 % create plotting patch for exposure phase
 P.Vertices = [ 4.5 -100; 155.5 -100; 155.5 100; 4.5 100];
 P.Faces = [1 2 3 4];
@@ -468,11 +467,7 @@ for group = 1:ngroups
     
     %% Plot MPE for each subject, and group average
     statsblocks = 8;
-    % normalise MPE by mean peak speed across all groups
-    if FLAGS.normMPE
-        mpe = mpe./timing.peakspeed;
-        mpe = mpe.*nmpe_scalefactor;
-    end
+  
     pre=5;  exp=150; trans=20; post=3;
     basephase = zeros(N,1); basephase(indB) = 1;
     exposurephase = zeros(N,1); exposurephase(indE) = 1;
@@ -495,7 +490,6 @@ for group = 1:ngroups
     
     mpebase = mean(reshape(mpe(indbase), c, length(mpe(indbase))/c),1);
     mpebase = reshape(mpebase,length(mpebase)/nsubj,nsubj);
-  
     stats.mpebaseline{group} = mpebase;
     stats.firstmpeblock{group} = mpeblock(pre+1:pre+statsblocks,:);
     stats.finalmpeblock{group} = mpeblock(pre+exp+1-statsblocks:pre+exp,:);
@@ -508,11 +502,7 @@ for group = 1:ngroups
     c = 8*4;  % can't smooth every 3 in transfer phase
     mpeblocktrans = mean(reshape(mpe(indtrans), c, length(mpe(indtrans))/c),1);
     mpeblocktrans = reshape(mpeblocktrans,length(mpeblocktrans)/nsubj,nsubj);
-
-    % baseline MPE for x-shifting
-    %mpeblockbase = mean(reshape(mpe(indbase), c, length(mpe(indbase))/c),1);
-    %mpeblockbase = -mean(mean(reshape(mpeblockbase,length(mpeblockbase)/nsubj,nsubj),2));
-
+    
     % plot mpe per subject (smoothed per block only)
     figure();
     for i=1:nsubj
@@ -556,26 +546,6 @@ for group = 1:ngroups
     errorbar(pre+exp+trans+post+3+group*3, aftereffects_mean,aftereffects_se,'k'); hold on;
     plot(pre+exp+trans+post+3+group*3, aftereffects_mean, 'o','MarkerSize',7,'MarkerEdgeColor',colours(group,:), 'MarkerFaceColor',colours(group,:)); hold on;
     
-   
-    
-    %-------------
-    %{
-    % plot another figure that is baseline-shifted
-    figure(1500);
-    subplot(1,2,1);
-    shadeplot(1:pre, mpeblockbase+mpeblock_mean(1:pre), mpeblock_se(1:pre),'-',colours(group,:),0.3); hold all; % pre-exposure
-    shadeplot(linspace(pre+1,exp+pre,length(mpeblockexp_mean)), mpeblockbase+mpeblockexp_mean, mpeblockexp_se,'-',colours(group,:),0.3); hold all;  % exposure
-    shadeplot(linspace(pre+exp+1,exp+pre+trans,length(mpeblocktrans_mean)), mpeblockbase+mpeblocktrans_mean, mpeblocktrans_se,'-',colours(group,:),0.3); hold all;  % exposure
-    shadeplot(exp+pre+trans+1:exp+pre+post+trans, mpeblockbase+mpeblock_mean(end-post+1:end), mpeblock_se(end-post+1:end),'-',colours(group,:),0.3); hold all;  % pre-exposure
-    plot([0 pre+exp+trans+post],[0 0],'k');
-    ylabel('MPE (cm)');
-    xlabel('Block');
-    axis([0 pre+exp+post+20 -1.5 4]);
-    
-    % plot the average after effects in a subpanel
-    errorbar(pre+exp+trans+post+3+group*3, mpeblockbase+aftereffects_mean,aftereffects_se,'k'); hold on;
-    plot(pre+exp+trans+post+3+group*3, mpeblockbase+aftereffects_mean, 'o','MarkerSize',7,'MarkerEdgeColor',colours(group,:), 'MarkerFaceColor',colours(group,:)); hold on;
-    %}
     %% Plot adaptation for each subject on the same figure (1 per group)
     
     % smooth adaptation by block
@@ -603,7 +573,7 @@ for group = 1:ngroups
     adaptationbase = reshape(adaptationbase,length(adaptationbase)/nsubj,nsubj);
     adaptationbase0 = mean(reshape(adaptation(basechannels0), c, length(adaptation(basechannels0))/c),1);  % smooth by block
     adaptationbase0 = reshape(adaptationbase0,length(adaptationbase0)/nsubj,nsubj);
-   
+    
     % in the planning only and imagine conditions, get rid of some extra data on the ends so group plotting is comparable
     adaptationblock = adaptationblock(2:end-1,:);
     adaptation0block = reshape(adaptation(ind0excltrans),length(adaptation(ind0excltrans))/nsubj,nsubj);  % only 1 channel of this type per block
@@ -616,7 +586,7 @@ for group = 1:ngroups
     stats.firstadapt0block{group} = adaptation0block(pre+1:pre+statsblocks,:);
     stats.finaladapt0block{group} = adaptation0block(pre+exp+1-statsblocks:pre+exp,:);
     
-    % smooth adaptation by 2 blocks in exposure phase 
+    % smooth adaptation by 2 blocks in exposure phase
     c = c*smooth_factor;
     adaptationblockexp = mean(reshape(adaptation(indexp), c, length(adaptation(indexp))/c),1);
     adaptationblockexp = reshape(adaptationblockexp,length(adaptationblockexp)/nsubj,nsubj);
@@ -626,12 +596,11 @@ for group = 1:ngroups
     adaptationblocktrans = reshape(adaptationblocktrans,length(adaptationblocktrans)/nsubj,nsubj);
     adaptationblocktransim = mean(reshape(adaptation(indtransim), c, length(adaptation(indtransim))/c),1);
     adaptationblocktransim = reshape(adaptationblocktransim,length(adaptationblocktransim)/nsubj,nsubj);
-       
+    
     adtrans = reshape(adaptation(indtrans),length(adaptation(indtrans))/nsubj,nsubj);
     adtransim = reshape(adaptation(indtransim),length(adaptation(indtransim))/nsubj,nsubj);
     
     % plot by subject in group
-    % if FLAGS.plotextra
     figure();
     clear adaptationsubjfinalblock
     for i=1:nsubj
@@ -653,14 +622,9 @@ for group = 1:ngroups
         adaptationsubjfinalblocktrans_sd(i) = std(adtrans(1:4,i));
         adaptationsubjfinalblockim(i) = mean(adtransim(1:4,i));  % first 4 blocks of transfer phase
         adaptationsubjfinalblockim_sd(i) = std(adtransim(1:4,i));
-        adaptationsubjfinalblocktrans8(i) = mean(adtrans(1:8,i));  % first 8 blocks of transfer phase
-        adaptationsubjfinalblocktrans_sd8(i) = std(adtrans(1:8,i));
-        adaptationsubjfinalblockim8(i) = mean(adtransim(1:8,i));  % first 8 blocks of transfer phase
-        adaptationsubjfinalblockim_sd8(i) = std(adtransim(1:8,i));
     end
     strng = sprintf('Adaptation per subject, group %d', group);
     suptitle(strng);
-    % end
     
     % average across subjects
     adaptblock_mean = mean(adaptationblock,2);
@@ -671,7 +635,7 @@ for group = 1:ngroups
     adaptblocktrans_se = std(adaptationblocktrans,0,2) ./ sqrt(size(adaptationblocktrans,2));
     adaptblocktransim_mean = mean(adaptationblocktransim,2);
     adaptblocktransim_se = std(adaptationblocktransim,0,2) ./ sqrt(size(adaptationblocktransim,2));
-   
+    
     % plot average across all subjects in group
     figure(1000);
     subplot(1,2,2);
@@ -683,8 +647,7 @@ for group = 1:ngroups
     plot([0 pre+exp+post],[0 0],'k');
     ylabel('Adaptation (%)');
     xlabel('Block');
-    %axis([0 pre+exp+trans+post -20 60]);
-   
+    
     % plot the average final adaptation level in a subpanel
     
     % execution trials - end of exposure phase
@@ -707,60 +670,6 @@ for group = 1:ngroups
     
     axis([0 pre+exp+trans+post+20 -20 60]);
     legend([h1',h2'],{'Execution trials','Imagery trials'})
-    
-    %-----------------
-    %{
-    % plot another figure that is baseline adaptation-shifted
-    figure(1500)
-    subplot(1,2,2);
-    shadeplot(1:pre, adaptblock_mean(1:pre), adaptationbase+adaptblock_se(1:pre),'-',colours(group,:),0.3); hold all; % pre-exposure
-    shadeplot(linspace(pre+1,exp+pre,length(adaptblockexp_mean)), adaptationbase+adaptblockexp_mean, adaptblockexp_se,'-',colours(group,:),0.3); hold all;  % exposure
-    h1=shadeplot(linspace(pre+exp+1,exp+trans+pre,length(adaptblocktrans_mean)), adaptationbase+adaptblocktrans_mean, adaptblocktrans_se,'-',colours(group,:),0.3); hold all;  % exposure
-    h2=shadeplot(linspace(pre+exp+1,exp+trans+pre,length(adaptblocktransim_mean)), adaptationbase+adaptblocktransim_mean, adaptblocktransim_se,'-',colours(group+1,:),0.3); hold all;  % exposure
-    shadeplot(exp+pre+trans+1:exp+pre+trans+post, adaptationbase+adaptblock_mean(end-post+1:end), adaptblock_se(end-post+1:end),'-',colours(group,:),0.3); hold all;  % post-exposure
-    plot([0 pre+exp+post],[0 0],'k');
-    ylabel('Adaptation, baseline-shifted (%)');
-    xlabel('Block');
-    %axis([0 pre+exp+trans+post -20 60]);
-   
-    % plot the average final adaptation level in a subpanel
-    % execution trials - end of exposure phase
-    finaladapt_mean = mean(adaptationsubjfinalblock);
-    finaladapt_se = std(adaptationsubjfinalblock) ./ sqrt(nsubj);
-    errorbar(pre+exp+trans+post+3+group*3, finaladapt_mean+adaptationbase,finaladapt_se,'k'); hold on;
-    plot(pre+exp+trans+post+3+group*3, finaladapt_mean+adaptationbase, 'o','MarkerSize',7,'MarkerEdgeColor',colours(group,:), 'MarkerFaceColor',colours(group,:)); hold on;
-    
-    % execution trials - transfer phase
-    finaladapt_mean = mean(adaptationsubjfinalblocktrans);
-    finaladapt_se = std(adaptationsubjfinalblocktrans) ./ sqrt(nsubj);
-    errorbar(pre+exp+trans+post+9+group*3, finaladapt_mean+adaptationbase,finaladapt_se,'k'); hold on;
-    plot(pre+exp+trans+post+9+group*3, finaladapt_mean+adaptationbase, 'o','MarkerSize',7,'MarkerEdgeColor',colours(group,:), 'MarkerFaceColor',colours(group,:)); hold on;
-    
-    % imagining trials
-    finaladapt_mean = mean(adaptationsubjfinalblockim);
-    finaladapt_se = std(adaptationsubjfinalblockim) ./ sqrt(nsubj);
-    errorbar(pre+exp+trans+post+6+group*3, finaladapt_mean+adaptationbase,finaladapt_se,'k'); hold on;
-    plot(pre+exp+post+trans+6+group*3, finaladapt_mean+adaptationbase, 'o','MarkerSize',7,'MarkerEdgeColor',colours(group+1,:), 'MarkerFaceColor',colours(group+1,:)); hold on;
-    axis([0 pre+exp+trans+post+20 -20 60]);
-    legend([h1',h2'],{'Execution trials','Imagery trials'})
-    %}
-    %% Plot how well the adaptation measure captured the force data
-    % for all channel trials, we want to see what the R2 of fit was, across
-    % time to get a measure of how well our adaptation measure is actually capturing the data.
-    %{
-    figure();
-    ind = find(field(:,S.FIELD_CHANNEL)==1);
-    channelresiduals = reshape(adaptationdetails.residuals(ind), length(adaptationdetails.residuals(ind))./nsubj, nsubj);
-    for i=1:nsubj
-        subplot(1,nsubj,i);
-        plot((channelresiduals(:,i)).^2);
-        axis([0,640,0,7*10^7]);
-        xlabel('Channel trial');
-        ylabel('SSR');
-    end    
-    strng = sprintf('Group %d: Sum squared residuals of channel regression fit to velocity profile', group);
-    suptitle(strng);
-    %}
     
     %% Plot the trajectories for each group, at different experiment phases
     % Note: this takes a long time to execute
@@ -849,198 +758,129 @@ for group = 1:ngroups
     executecolour = [0.5,0.5,0.5];
     imaginecolour = [0,1,1];
     
-    if group<4
-        
-        % plot by subject in group
-        if FLAGS.plotextra
-            figure();
-            for i=1:nsubj
-                subplot(2,nsubj,i);
-                h1 = plot(linspace(1,ntrial,size(timing.imagineduration,1)),timing.imagineduration(:,i),'Color',imaginecolour); hold on;
-                h2 = plot(linspace(1,ntrial,size(timing.executionduration,1)),timing.executionduration(:,i),'Color',executecolour); hold on;
-                plot([0 ntrial],[0,0],'k');
-                axis([0 ntrial 0 2]);
-                if i==1
-                    xlabel('Trials');
-                    ylabel('Trial Duration (s)');
-                    legend([h1',h2'],{'Imagined','Executed'});
-                end
-                
-                subplot(2,nsubj,nsubj+i);
-                bar(1,mean(timing.imagineduration(:,i)),'FaceColor',imaginecolour); hold on;
-                errorbar(1,mean(timing.imagineduration(:,i)),std(timing.imagineduration(:,i)),'Color',imaginecolour); hold on;
-                bar(2,mean(timing.executionduration(:,i)),'FaceColor',executecolour); hold on;
-                errorbar(2,mean(timing.executionduration(:,i)),std(timing.executionduration(:,i)),'Color',executecolour); hold on;
-                ylabel('Movement duration (s)');
-                ax=gca;
-                ax.XTick = [1,2];
-                ax.XTickLabel = {'Imagined','Executed'};
-                ax.XTickLabelRotation = 50;
-            end
-            suptitle('Movement duration per subject');
-        end
-        
-        % average for each subject
-        averageimagineduration = mean(timing.imagineduration,1);
-        averageexecutionduration = mean(timing.executionduration,1);
-        fieldnm = {'fixationtransfer'};
-        
-        imduration = [imduration,averageimagineduration];
-        execduration = [execduration,averageexecutionduration];
-        
-        % chronometry for each subject individually (get a per subject chronometry measure from regression):
-        figure(2200) % *** this might not be the right way to do this because you have to average 2 trials in time to regress im. and exec.
+    % plot by subject in group
+    if FLAGS.plotextra
+        figure();
         for i=1:nsubj
-            y = mean(reshape(timing.imagineduration(:,i), 2,length(timing.imagineduration(:,i))./2),1)';
-            exdata = timing.executionduration(:,i);
-            X = [exdata];                       % slope no intercept
-            [b,bint]=regress(y,X);                % b = [slope] (use slope as the chronometry measure)
-            er = (bint(1,1)-b(1))./2;
-            sd = (bint(1,:)-b(1))./2 + b(1);
-            chronometry.(fieldnm{group})(i,:) = [b(1),sd];                   % mean, lower sd, upper sd
+            subplot(2,nsubj,i);
+            h1 = plot(linspace(1,ntrial,size(timing.imagineduration,1)),timing.imagineduration(:,i),'Color',imaginecolour); hold on;
+            h2 = plot(linspace(1,ntrial,size(timing.executionduration,1)),timing.executionduration(:,i),'Color',executecolour); hold on;
+            plot([0 ntrial],[0,0],'k');
+            axis([0 ntrial 0 2]);
+            if i==1
+                xlabel('Trials');
+                ylabel('Trial Duration (s)');
+                legend([h1',h2'],{'Imagined','Executed'});
+            end
             
-            % plot chronometry per subject against final learning
-            plot(b(1), adaptationsubjfinalblock(i), '.', 'MarkerSize',15, 'Color', colours(group,:)); hold on;
-            herrorbar(b(1), adaptationsubjfinalblock(i), er); hold on;
-            errorbar(b(1), adaptationsubjfinalblock(i),adaptationsubjfinalblock_sd(i),'Color',colours(group,:)); hold on;
-            
+            subplot(2,nsubj,nsubj+i);
+            bar(1,mean(timing.imagineduration(:,i)),'FaceColor',imaginecolour); hold on;
+            errorbar(1,mean(timing.imagineduration(:,i)),std(timing.imagineduration(:,i)),'Color',imaginecolour); hold on;
+            bar(2,mean(timing.executionduration(:,i)),'FaceColor',executecolour); hold on;
+            errorbar(2,mean(timing.executionduration(:,i)),std(timing.executionduration(:,i)),'Color',executecolour); hold on;
+            ylabel('Movement duration (s)');
+            ax=gca;
+            ax.XTick = [1,2];
+            ax.XTickLabel = {'Imagined','Executed'};
+            ax.XTickLabelRotation = 50;
         end
-        xlabel('Mental chronometry slope');
-        ylabel('Final adaptation level');
-        
-        % plot average mental chronometry across all subjects in group
-        figure(2000);
-        subplot(1,2,1);
-        cf1 = plot([0 2.5],[0 2.5],'-','Color',[0.5 0.5 0.5]); hold on;
-        cf2 = plot(averageexecutionduration,averageimagineduration,'.', 'MarkerSize',15, 'Color', colours(group,:)); hold on;
-        xlabel('Execution duration (s)');
-        ylabel('Imagining duration (s)');
-        axis([0.1 1.7 .1 1.7])
-        %axis([0 2.5 0 2.5])
-        
-        imaginedurationgroups(group,:,:) = averageimagineduration;
-        executiondurationgroups(group,:,:) = averageexecutionduration;
-        
-        im = mean(imaginedurationgroups,1);
-        ex = mean(executiondurationgroups,1);
-        subplot(1,2,2);
-        bar(1,mean(im),'FaceColor',imaginecolour); hold on;
-        errorbar(1,mean(im),std(im)./sqrt(nsubj),'Color',imaginecolour); hold on;
-        bar(2,mean(ex),'FaceColor',executecolour); hold on;
-        errorbar(2,mean(ex),std(ex),'Color',executecolour); hold on;
-        ylabel('Movement duration (s)');
-        ax=gca;
-        ax.XTick = [1,2];
-        ax.XTickLabel = {'Imagined','Executed'};
-        ax.XTickLabelRotation = 50;
-        
+        suptitle('Movement duration per subject');
     end
     
+    % average for each subject
+    averageimagineduration = mean(timing.imagineduration,1);
+    averageexecutionduration = mean(timing.executionduration,1);
+    fieldnm = {'fixationtransfer'};
+    
+    % plot average mental chronometry across all subjects in group
+    figure(2000);
+    subplot(1,2,1);
+    cf1 = plot([0 2.5],[0 2.5],'-','Color',[0.5 0.5 0.5]); hold on;
+    cf2 = plot(averageexecutionduration,averageimagineduration,'.', 'MarkerSize',15, 'Color', colours(group,:)); hold on;
+    xlabel('Execution duration (s)');
+    ylabel('Imagining duration (s)');
+    axis([0 1.5 0 1.5])
+    
+    imaginedurationgroups(group,:,:) = averageimagineduration;
+    executiondurationgroups(group,:,:) = averageexecutionduration;
+    
+    im = mean(imaginedurationgroups,1);
+    ex = mean(executiondurationgroups,1);
+    subplot(1,2,2);
+    bar(1,mean(im),'FaceColor',imaginecolour); hold on;
+    errorbar(1,mean(im),std(im)./sqrt(nsubj),'Color',imaginecolour); hold on;
+    bar(2,mean(ex),'FaceColor',executecolour); hold on;
+    errorbar(2,mean(ex),std(ex),'Color',executecolour); hold on;
+    ylabel('Movement duration (s)');
+    ax=gca;
+    ax.XTick = [1,2];
+    ax.XTickLabel = {'Imagined','Executed'};
+    ax.XTickLabelRotation = 50;
     
     %% Plot correlations between final adaptation level and MI scores
-         figure(3000);
-        subplot(1,4,1);  % plot final adaptation level vs. MIQ-score
-        h1=plot(imagery.MIQscore,adaptationsubjfinalblock,'xk'); hold on;
-        h2=plot(imagery.MIQkinesthetic, adaptationsubjfinalblock, '.b'); hold on;
-        h3=plot(imagery.MIQvisual, adaptationsubjfinalblock, '.c'); hold on;
-        
-        XMIQ(:,group) = imagery.MIQscore;
-        xlabel('Mean MIQ-score');
-        ylabel('Adaptation level (%)');
-        legend([h1',h2',h3'], {'Both MIQ','MIQ kinesthetic','MIQ visual'});
-        
-        subplot(1,4,2);  % plot final adaptation level vs. MIQ-maintenance frequency. This looks good.
-        plot(squeeze(mean(imagery.MImaintain(:,:,2),2)),adaptationsubjfinalblock,'.','MarkerSize',15, 'Color', colours(group,:)); hold on;
-        for i=1:nsubj
-            errorbar(squeeze(mean(imagery.MImaintain(i,:,2),2)),adaptationsubjfinalblock(i), adaptationsubjfinalblock_sd(i),'Color', colours(group,:)); hold on;
-        end
-        
-        tmp = mean(imagery.MImaintain(:,:,2),2);
-        Xmaintain(:,group) = tmp;
-        xlabel('Mean MI-maintenance frequency');
-        ylabel('Adaptation level (%)');
-        
-        subplot(1,4,3);  % plot final adaptation level vs. MIQ-maintenance ease.
-        plot(squeeze(mean(imagery.MImaintain(:,:,1),2)),adaptationsubjfinalblock,'.','MarkerSize',15, 'Color', colours(group,:)); hold on;
-        for i=1:nsubj
-            errorbar(squeeze(mean(imagery.MImaintain(i,:,1),2)),adaptationsubjfinalblock(i), adaptationsubjfinalblock_sd(i),'Color', colours(group,:)); hold on;
-        end
-        
-        tmp = mean(imagery.MImaintain(:,:,1),2);
-        Xmaintainease(:,group) = tmp;
-        xlabel('Mean MI-maintenance ease');
-        ylabel('Adaptation level (%)');
-        
-        
-        subplot(1,4,4);  % plot final adaptation level vs. button-press performance
-        %MItiming = (abs(averageimagineduration-averageexecutionduration)./averageexecutionduration).*100;
-        MItiming = averageimagineduration./averageexecutionduration;
-        plot(MItiming,adaptationsubjfinalblock,'xr'); hold on;
-        xlabel('Imagery-Execution timing difference (% execution time)');
-        ylabel('Adaptation level (%)');
-        
-        Xtiming(:,group) = MItiming;
-        
-        finaladapt(:,group) = adaptationsubjfinalblock';
-        
-        % regress and plot correlation
-        XMIQtotal = reshape(XMIQ, numel(XMIQ),1);
-        Xmaintaintotal = reshape(Xmaintain, numel(Xmaintain),1);
-        Xmaintaineasetotal = reshape(Xmaintainease, numel(Xmaintainease),1);
-        MItimingtotal = reshape(Xtiming, numel(Xtiming),1);
-        y = reshape(finaladapt, numel(finaladapt),1);
-        
-        subplot(1,4,1);
-        [b,bint,~,~,imagestats]=regress(y,[XMIQtotal, ones(size(XMIQtotal))]);                % b = [slope, intercept]
-        [r,pim] = corrcoef(y,XMIQtotal);
-        plot(0:10,b(1).*[0:10]+b(2), '--b'); hold on;
-        strng = sprintf('R = %.2f, p = %.4f', r(1,2),pim(1,2));
-        text(4,20,strng);
-        
-        subplot(1,4,2);
-        [b,bint,~,~,imagestats]=regress(y,[Xmaintaintotal, ones(size(Xmaintaintotal))]);                % b = [slope, intercept]
-        [r,pim] = corrcoef(y,Xmaintaintotal);
-        plot(0:3,b(1).*[0:3]+b(2), '--b'); hold on;
-        strng = sprintf('R = %.2f, p = %.4f', r(1,2), pim(1,2));
-        text(1,20,strng);
-        
-        subplot(1,4,3);
-        [b,bint,~,~,imagestats]=regress(y,[Xmaintaineasetotal, ones(size(Xmaintaineasetotal))]);                % b = [slope, intercept]
-        [r,pim] = corrcoef(y,Xmaintaineasetotal);
-        plot(0:10,b(1).*[0:10]+b(2), '--b'); hold on;
-        strng = sprintf('R = %.2f, p = %.4f', r(1,2), pim(1,2));
-        text(1,20,strng);
-        
-        subplot(1,4,4);
-        [b,bint,~,~,imagestats]=regress(y,[MItimingtotal, ones(size(MItimingtotal))]);                % b = [slope, intercept]
-        [r,pim] = corrcoef(y,MItimingtotal);
-        plot(0:3,b(1).*[0:3]+b(2), '--b'); hold on;
-        strng = sprintf('R = %.2f, p = %.4f', r(1,2),pim(1,2));
-        text(1,20,strng);
-        
-    %% plot peak speed per group
-    % check possible reason for difference in after-effect magnitudes
-    figure(150);
-    tmp = reshape(timing.peakspeed,length(timing.peakspeed)/nsubj,nsubj);
-    subspeeds = mean(tmp);
-    bar(group,mean(subspeeds)); hold on;
-    errorbar(group,mean(subspeeds),std(subspeeds)./sqrt(nsubj)); hold on;
-    ylabel('Peak Speed (cm/s)');
-    axis([0.5 4.5 0 55]);
+    figure(3000);
+    subplot(1,3,1);  % plot final adaptation level vs. MIQ-score
+    h1=plot(imagery.MIQscore,adaptationsubjfinalblock,'xk'); hold on;
+    h2=plot(imagery.MIQkinesthetic, adaptationsubjfinalblock, '.b'); hold on;
+    h3=plot(imagery.MIQvisual, adaptationsubjfinalblock, '.c'); hold on;
     
-    figure(155);
-    tmpch = reshape(timing.peakspeedch,length(timing.peakspeedch)/nsubj,nsubj);
-    subspeedsch = mean(mean(tmpch));
-    subspeedsch_se = std(mean(tmpch)) ./ sqrt(nsubj);
-    tmpex = reshape(timing.peakspeedex,length(timing.peakspeedex)/nsubj,nsubj);
-    subspeedsex = mean(mean(tmpex));
-    subspeedsex_se = std(mean(tmpex))./sqrt(nsubj);
-    speed_series = [speed_series; subspeedsch, subspeedsex];
-    speed_error = [speed_error; subspeedsch_se, subspeedsex_se];
-    %bar(group,mean(subspeeds)); hold on;
-    %errorbar(group,mean(subspeeds),std(subspeeds)./sqrt(nsubj)); hold on;
+    XMIQ(:,group) = imagery.MIQscore;
+    xlabel('Mean MIQ-score');
+    ylabel('Adaptation level (%)');
+    legend([h1',h2',h3'], {'Both MIQ','MIQ kinesthetic','MIQ visual'});
     
-    clearvars -except finaladapt  Xtiming Xmaintainease Xmaintain XMIQ Adaptation AdaptationDetail P MPE stats ngroups nsubj ntrial N S FLAGS Timing Experiment colours FrameData nmpe_scalefactor aftereffects fh fh2 A M MI speed_series speed_error imduration execduration cf1 cf2 cf3 chronometry imaginedurationgroups executiondurationgroups adaptationsubjfinalblockim adaptationsubjfinalblocktrans 
+    subplot(1,3,2);  % plot final adaptation level vs. MIQ-maintenance frequency. This looks good.
+    plot(squeeze(mean(imagery.MImaintain(:,:,2),2)),adaptationsubjfinalblock,'.','MarkerSize',15, 'Color', colours(group,:)); hold on;
+    for i=1:nsubj
+        errorbar(squeeze(mean(imagery.MImaintain(i,:,2),2)),adaptationsubjfinalblock(i), adaptationsubjfinalblock_sd(i),'Color', colours(group,:)); hold on;
+    end
+    
+    tmp = mean(imagery.MImaintain(:,:,2),2);
+    Xmaintain(:,group) = tmp;
+    xlabel('Mean MI-maintenance frequency');
+    ylabel('Adaptation level (%)');
+    
+    subplot(1,3,3);  % plot final adaptation level vs. MIQ-maintenance ease.
+    plot(squeeze(mean(imagery.MImaintain(:,:,1),2)),adaptationsubjfinalblock,'.','MarkerSize',15, 'Color', colours(group,:)); hold on;
+    for i=1:nsubj
+        errorbar(squeeze(mean(imagery.MImaintain(i,:,1),2)),adaptationsubjfinalblock(i), adaptationsubjfinalblock_sd(i),'Color', colours(group,:)); hold on;
+    end
+    
+    tmp = mean(imagery.MImaintain(:,:,1),2);
+    Xmaintainease(:,group) = tmp;
+    xlabel('Mean MI-maintenance ease');
+    ylabel('Adaptation level (%)');
+    finaladapt(:,group) = adaptationsubjfinalblock';
+    
+    % regress and plot correlation
+    XMIQtotal = reshape(XMIQ, numel(XMIQ),1);
+    Xmaintaintotal = reshape(Xmaintain, numel(Xmaintain),1);
+    Xmaintaineasetotal = reshape(Xmaintainease, numel(Xmaintainease),1);
+    MItimingtotal = reshape(Xtiming, numel(Xtiming),1);
+    y = reshape(finaladapt, numel(finaladapt),1);
+    
+    subplot(1,3,1);
+    [b,bint,~,~,imagestats]=regress(y,[XMIQtotal, ones(size(XMIQtotal))]);                % b = [slope, intercept]
+    [r,pim] = corrcoef(y,XMIQtotal);
+    plot(0:10,b(1).*[0:10]+b(2), '--b'); hold on;
+    strng = sprintf('R = %.2f, p = %.4f', r(1,2),pim(1,2));
+    text(4,20,strng);
+    
+    subplot(1,3,2);
+    [b,bint,~,~,imagestats]=regress(y,[Xmaintaintotal, ones(size(Xmaintaintotal))]);                % b = [slope, intercept]
+    [r,pim] = corrcoef(y,Xmaintaintotal);
+    plot(0:3,b(1).*[0:3]+b(2), '--b'); hold on;
+    strng = sprintf('R = %.2f, p = %.4f', r(1,2), pim(1,2));
+    text(1,20,strng);
+    
+    subplot(1,3,3);
+    [b,bint,~,~,imagestats]=regress(y,[Xmaintaineasetotal, ones(size(Xmaintaineasetotal))]);                % b = [slope, intercept]
+    [r,pim] = corrcoef(y,Xmaintaineasetotal);
+    plot(0:10,b(1).*[0:10]+b(2), '--b'); hold on;
+    strng = sprintf('R = %.2f, p = %.4f', r(1,2), pim(1,2));
+    text(1,20,strng);
+    
+    clearvars -except finaladapt  Xtiming Xmaintainease Xmaintain XMIQ Adaptation AdaptationDetail P MPE stats ngroups nsubj ntrial N S FLAGS Timing Experiment colours FrameData nmpe_scalefactor aftereffects fh fh2 A M MI speed_series speed_error imduration execduration cf1 cf2 cf3 chronometry imaginedurationgroups executiondurationgroups adaptationsubjfinalblockim adaptationsubjfinalblocktrans
 end
 %%
 figure(1000);                       % plot some background shaded areas
@@ -1051,65 +891,20 @@ Pg.Vertices = [ pre+.5 -100; exp+pre+.5 -100; exp+pre+.5 100; pre+.5 100];
 patch(Pg); hold on;
 subplot(1,2,2)
 patch(P); hold on;
-%legend([fh(1)',fh(2)'],{'No imagery','Imagery (free eye-movement)'});
-%legend([fh(1)',fh(2)',fh(3)'],{'No imagery (fixation)','Imagery (free-eye movement)','Planning only'});
-%legend([fh(1)',fh(2)',fh(3)',fh(4)'],{'No imagery (fixation)','Imagery (fixation)','Imagery (free eye-movement)', 'Planning'});
-%legend([fh(1)',fh(2)',fh(3)',fh(4)'],{'No imagery (fixation)','Imagery (free-eye movement)','Planning only','Full follow-thorugh'});
-
-
-figure(150);
-title('Average peak speed (cm/s) per group');
-ylab = 'Peak Speed (cm/s)';
-xticks = {'No Imagery (F)','Imagery (F)','Imagery (NF)','Planning (NF)'};
-
-figure(155);
-ylab = 'Peak Speed (cm/s)';
-xticks = {'No Imagery (F)','Imagery (F)','Imagery (NF)','Planning (NF)'};
-legend_entries = {'Channel trials (exec)','Exposure trials (im)'};
-barserror(speed_series, speed_error, ylab, xticks, legend_entries); hold on;
-%ax = gca;
-%ax.XTick = [1:ngroups];
-%ax.XTickLabel= {'No Imagery (F)','Imagery (F)','Imagery (NF)','Planning (NF)'};
-title('Average peak speed (cm/s) per group');
-axis([0.5 4.5 0 55]);
 
 clear pre exp post fh fh2 P Pg ntrial N
-%------------------------------
-%% For the imagining groups, plot the correlation between imagined and executed movements
-y = reshape(imduration,1,size(imduration,1)*size(imduration,2))';   % imagining durations
-exdata = reshape(execduration,1,size(execduration,1)*size(execduration,2))';  % execution durations
-X = [exdata];                       % slope, no intercept
-[b,bint,~,~,imagestats]=regress(y,X);                % b = [slope]
-[r,pim] = corrcoef(y,X);  % significant correlation, p=0.0000...
 
-figure(2000);
-subplot(1,2,1);
-cf4 = plot(0:3,b(1).*[0:3], '--b'); hold on;
-%legend([cf2',cf3',cf1',cf4'],{'Imagery (F)','Imagery (NF)','Perfect mental chronometry','Regression fit'});
-strng = sprintf('R = %.2f', r(1,2));
-text(1.7,1.7,strng);
-axis([0 2 0 2]);
 %------------------------------
 %% Statistical Analysis - learning
 % Used pre-exposure (first 6) blocks and last 6 blocks of exposure data for epochs
 groupname = {'imagerytransfer'};
 for group=1:ngroups                    % within-group learning
     
-    [~, statstable.mpe{group}] = anova_rm([squeeze(mean(stats.firstmpeblock{group}))', squeeze(mean(stats.finalmpeblock{group}))'],'off');
-    
-    % compare early and late exposure phase
-    %{
-    [~, statstable.adaptation{group}] = anova_rm([squeeze(mean(stats.firstadaptblock{group}))', squeeze(mean(stats.finaladaptblock{group}))'],'off');
-    [~, statstable.adaptation0only{group}] = anova_rm([squeeze(mean(stats.firstadapt0block{group}))', squeeze(mean(stats.finaladapt0block{group}))'],'off');
-    %adaptstats.(groupname{group}) = [squeeze(mean(stats.firstadaptblock{group}))', squeeze(mean(stats.finaladaptblock{group}))']; 
-    %adaptstats0only.(groupname{group}) = [squeeze(mean(stats.firstadapt0block{group}))', squeeze(mean(stats.finaladapt0block{group}))']; 
-    %}
-    
     % compare pre and late exposure phase
     [~, p.adaptation{group},~,statstable.adaptationtable{group}] = ttest(squeeze(mean(stats.adaptbaseline{group}))', squeeze(mean(stats.finaladaptblock{group}))');
     [~, p.adaptation0{group},~,statstable.adaptation0onlytable{group}] = ttest(squeeze(mean(stats.adaptbaseline0{group}))', squeeze(mean(stats.finaladapt0block{group}))');
-    adaptstats.(groupname{group}) = [squeeze(mean(stats.adaptbaseline{group}))', squeeze(mean(stats.finaladaptblock{group}))']; 
-    adaptstats0only.(groupname{group}) = [squeeze(mean(stats.adaptbaseline0{group}))', squeeze(mean(stats.finaladapt0block{group}))']; 
+    adaptstats.(groupname{group}) = [squeeze(mean(stats.adaptbaseline{group}))', squeeze(mean(stats.finaladaptblock{group}))'];
+    adaptstats0only.(groupname{group}) = [squeeze(mean(stats.adaptbaseline0{group}))', squeeze(mean(stats.finaladapt0block{group}))'];
     
     mpestats.(groupname{group}) = [squeeze(mean(stats.firstmpeblock{group}))', squeeze(mean(stats.finalmpeblock{group}))'];
     
@@ -1126,47 +921,7 @@ for group=1:ngroups                    % within-group learning
     mn = mean(aftereffects{group}'- mean(stats.mpebaseline{group})');
     se = std(aftereffects{group}'- mean(stats.mpebaseline{group})') ./ sqrt(8);
     sprintf('Diff aftereffects %s: %.2f  ? %.4f', groupname{group}, mn, se)
-    
 end
-
-
-%% Statistical analysis - kinematics
-
-% compare between group baseline kinematics with one-way anova. Note that
-% this is not an important measure, since of course the groups kinematics will be
-% different at baseline just because they do different tasks.
-for i=1:ngroups
-    
-    FIELD_NULL = Experiment{i}.S.FIELD_NULL; % same for all groups
-    ind = find(Experiment{i}.field(:,FIELD_NULL)); 
-   
-    % baseline peak speed by group
-    nsubj = Experiment{i}.nsubj;
-    tmpspeed = reshape(Timing{i}.peakspeed(ind), length(Timing{i}.peakspeed(ind))./nsubj, nsubj);
-    groupspeed = mean(tmpspeed);
-    allspeeds(:,i) = groupspeed';
-    
-    % baseline duration by group
-    tmpduration = reshape(Timing{i}.duration(ind), length(Timing{i}.duration(ind))./nsubj, nsubj);
-    groupduration = mean(tmpduration);
-    alldurations(:,i) = groupduration';
-    
-    % baseline maximum lateral deviation by group
-    tmpdev = reshape(FrameData{i}.lateraldev(ind), length(FrameData{i}.lateraldev(ind))./nsubj, nsubj);
-    groupdev = mean(tmpdev);
-    alldeviations(:,i) = groupdev';
-    
-    % baseline path length by group
-    tmppath = reshape(FrameData{i}.original.pathlength(ind), length(FrameData{i}.original.pathlength(ind))./nsubj, nsubj);
-    grouppath = mean(tmppath);
-    allpathlengths(:,i) = grouppath';
-    
-end
-[~, statstable.grouppeakspeeds] = anova1(allspeeds); 
-[~, statstable.groupdurations] = anova1(alldurations);   
-[~, statstable.groupdeviations] = anova1(alldeviations);   
-[~, statstable.grouppathlengths] = anova1(allpathlengths);  
-
 
 %% Statistical analysis - Baseline kinematics by Left vs Right followthrough
 % check for baseline difference for L vs R follow targets for for 5
@@ -1174,40 +929,40 @@ end
 % Left or Right condition per subject in groups1-4, and 8 datapoints per L or R per sub in group 5.
 % (use mean value per subject to contribute to group stats & consider just the 0 degree starting position)
 for i=1:ngroups
-   FIELD_NULL = Experiment{i}.S.FIELD_NULL; % same for all groups
-   ind = (Experiment{i}.field(:,FIELD_NULL) & Experiment{i}.D.HomeAngle==0) & (Experiment{i}.D.HomePosition(:,2)==[-16]); % hack for choosing 0degree start position. Seems redundant?
-   indL = ind & Experiment{i}.D.TargetAngle==45;
-   indR = ind & Experiment{i}.D.TargetAngle==-45;
-   
-   % baseline peak speed by FT target
-   baseLeft.(groupname{i}) = mean(reshape(Timing{i}.peakspeed(indL), length(Timing{i}.peakspeed(indL))./nsubj, nsubj),1)';
-   baseRight.(groupname{i}) = mean(reshape(Timing{i}.peakspeed(indR), length(Timing{i}.peakspeed(indR))./nsubj, nsubj),1)'; 
-   [~, statstable.peakspeedtarget{i}] = anova_rm([baseLeft.(groupname{i}),baseRight.(groupname{i})],'off');    
-   difference.peakspeedtarget(i) = mean(baseLeft.(groupname{i})) - mean(baseRight.(groupname{i}));
-  
-   % baseline duration by FT target
-   baseLeft.(groupname{i}) = mean(reshape(Timing{i}.duration(indL), length(Timing{i}.duration(indL))./nsubj, nsubj),1)';
-   baseRight.(groupname{i}) = mean(reshape(Timing{i}.duration(indR), length(Timing{i}.duration(indR))./nsubj, nsubj),1)'; 
-   [~, statstable.durationtarget{i}] = anova_rm([baseLeft.(groupname{i}),baseRight.(groupname{i})],'off');    
-   difference.durationtarget(i) = mean(baseLeft.(groupname{i})) - mean(baseRight.(groupname{i}));
-   
-   % baseline path length by FT target
-   baseLeft.(groupname{i}) = mean(reshape(FrameData{i}.original.pathlength(indL), length(FrameData{i}.original.pathlength(indL))./nsubj, nsubj),1)';
-   baseRight.(groupname{i}) = mean(reshape(FrameData{i}.original.pathlength(indR), length(FrameData{i}.original.pathlength(indR))./nsubj, nsubj),1)'; 
-   [~, statstable.pathlengthtarget{i}] = anova_rm([baseLeft.(groupname{i}),baseRight.(groupname{i})],'off');    
-   difference.pathlengthtarget(i) = mean(baseLeft.(groupname{i})) - mean(baseRight.(groupname{i}));
-   
-   % baseline dwell time by FT target (Note that this measure only makes sense for the full follow-through group)
-   baseLeft.(groupname{i}) = mean(reshape(Timing{i}.dwell(indL), length(Timing{i}.dwell(indL))./nsubj, nsubj),1)';
-   baseRight.(groupname{i}) = mean(reshape(Timing{i}.dwell(indR), length(Timing{i}.dwell(indR))./nsubj, nsubj),1)'; 
-   [~, statstable.dwelltarget{i}] = anova_rm([baseLeft.(groupname{i}),baseRight.(groupname{i})],'off');    
-   difference.dwelltarget(i) = mean(baseLeft.(groupname{i})) - mean(baseRight.(groupname{i}));
-
-   % baseline maximum lateral deviation by FT target
-   baseLeft.(groupname{i}) = mean(reshape(FrameData{i}.lateraldev(indL), length(FrameData{i}.lateraldev(indL))./nsubj, nsubj),1)';
-   baseRight.(groupname{i}) = mean(reshape(FrameData{i}.lateraldev(indR), length(FrameData{i}.lateraldev(indR))./nsubj, nsubj),1)'; 
-   [~, statstable.lateraldevtarget{i}] = anova_rm([baseLeft.(groupname{i}),baseRight.(groupname{i})],'off');    
-   difference.lateraldevtarget(i) = mean(baseLeft.(groupname{i})) - mean(baseRight.(groupname{i}));
+    FIELD_NULL = Experiment{i}.S.FIELD_NULL; % same for all groups
+    ind = (Experiment{i}.field(:,FIELD_NULL) & Experiment{i}.D.HomeAngle==0) & (Experiment{i}.D.HomePosition(:,2)==[-16]); % hack for choosing 0degree start position. Seems redundant?
+    indL = ind & Experiment{i}.D.TargetAngle==45;
+    indR = ind & Experiment{i}.D.TargetAngle==-45;
+    
+    % baseline peak speed by FT target
+    baseLeft.(groupname{i}) = mean(reshape(Timing{i}.peakspeed(indL), length(Timing{i}.peakspeed(indL))./nsubj, nsubj),1)';
+    baseRight.(groupname{i}) = mean(reshape(Timing{i}.peakspeed(indR), length(Timing{i}.peakspeed(indR))./nsubj, nsubj),1)';
+    [~, statstable.peakspeedtarget{i}] = anova_rm([baseLeft.(groupname{i}),baseRight.(groupname{i})],'off');
+    difference.peakspeedtarget(i) = mean(baseLeft.(groupname{i})) - mean(baseRight.(groupname{i}));
+    
+    % baseline duration by FT target
+    baseLeft.(groupname{i}) = mean(reshape(Timing{i}.duration(indL), length(Timing{i}.duration(indL))./nsubj, nsubj),1)';
+    baseRight.(groupname{i}) = mean(reshape(Timing{i}.duration(indR), length(Timing{i}.duration(indR))./nsubj, nsubj),1)';
+    [~, statstable.durationtarget{i}] = anova_rm([baseLeft.(groupname{i}),baseRight.(groupname{i})],'off');
+    difference.durationtarget(i) = mean(baseLeft.(groupname{i})) - mean(baseRight.(groupname{i}));
+    
+    % baseline path length by FT target
+    baseLeft.(groupname{i}) = mean(reshape(FrameData{i}.original.pathlength(indL), length(FrameData{i}.original.pathlength(indL))./nsubj, nsubj),1)';
+    baseRight.(groupname{i}) = mean(reshape(FrameData{i}.original.pathlength(indR), length(FrameData{i}.original.pathlength(indR))./nsubj, nsubj),1)';
+    [~, statstable.pathlengthtarget{i}] = anova_rm([baseLeft.(groupname{i}),baseRight.(groupname{i})],'off');
+    difference.pathlengthtarget(i) = mean(baseLeft.(groupname{i})) - mean(baseRight.(groupname{i}));
+    
+    % baseline dwell time by FT target (Note that this measure only makes sense for the full follow-through group)
+    baseLeft.(groupname{i}) = mean(reshape(Timing{i}.dwell(indL), length(Timing{i}.dwell(indL))./nsubj, nsubj),1)';
+    baseRight.(groupname{i}) = mean(reshape(Timing{i}.dwell(indR), length(Timing{i}.dwell(indR))./nsubj, nsubj),1)';
+    [~, statstable.dwelltarget{i}] = anova_rm([baseLeft.(groupname{i}),baseRight.(groupname{i})],'off');
+    difference.dwelltarget(i) = mean(baseLeft.(groupname{i})) - mean(baseRight.(groupname{i}));
+    
+    % baseline maximum lateral deviation by FT target
+    baseLeft.(groupname{i}) = mean(reshape(FrameData{i}.lateraldev(indL), length(FrameData{i}.lateraldev(indL))./nsubj, nsubj),1)';
+    baseRight.(groupname{i}) = mean(reshape(FrameData{i}.lateraldev(indR), length(FrameData{i}.lateraldev(indR))./nsubj, nsubj),1)';
+    [~, statstable.lateraldevtarget{i}] = anova_rm([baseLeft.(groupname{i}),baseRight.(groupname{i})],'off');
+    difference.lateraldevtarget(i) = mean(baseLeft.(groupname{i})) - mean(baseRight.(groupname{i}));
 end
 
 %% Compare initial after-effect magnitudes between groups to assess transfer
