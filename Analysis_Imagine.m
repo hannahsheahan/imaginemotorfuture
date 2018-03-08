@@ -1,11 +1,17 @@
-%% Motor Planning, Not Execution, Separates Motor Memories
-% Sheahan, Franklin & Wolpert. (2016), Neuron 92(4)
-% - This is an analysis script for assessing learning in 4 main groups of
-%   subjects (n=6 per group), and a control group (n=4).
+%% This is the main script for analysing learning data from 5 groups of human
+% subjects making reaching movements in two different perturbing forcefields. 
+% This script determines learning in each of the groups who perform different 
+% behavioural experiments, to evaluate whether imagining future movements can
+% separate motor memories. See also 'Analysis_ImagineTransfer.m' for two other
+% groups.
 
-% Group 1: no imagery
-% Group 2: imagery fixation
-% Group 3: imagery no fixation
+% Sheahan, HR., Ingram, JN, Zalalyte, GM, & Wolpert, DM. (2018) Imagery of
+% movements immediately following performance allows learning of motor skills
+% that interfere.
+
+% Group 1: no imagery (fixation)
+% Group 2: imagery (fixation)
+% Group 3: imagery (no fixation)
 % Group 4: planning only
 % Group 5: full follow-through
 
@@ -26,7 +32,7 @@ FLAGS.plotextra = 0;            % plot additional figures (subject-by-subject an
 
 %% load subject data
 ngroups = 5;
-for group = 1:ngroups  % load in by group because 'planning only' and 'control' groups have different total no. trials
+for group = 1:ngroups
     
     switch group
         case 1
@@ -40,7 +46,7 @@ for group = 1:ngroups  % load in by group because 'planning only' and 'control' 
         case 5
             load Fullfollowthrough8_combined;
     end
-    %% define general variables
+    %% define general experiment variables
     
     % Frame, trial, subject, group numbers
     trial  = D.ResampTrialNumber';
