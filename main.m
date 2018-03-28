@@ -1,7 +1,7 @@
-%% Motor Planning, Not Execution, Separates Motor Memories
-% Sheahan, Franklin & Wolpert. (2016), Neuron 92(4)
-% - This is an analysis script for assessing learning in 4 main groups of
-%   subjects (n=6 per group), and a control group (n=4).
+%% Imagery of movements immediately following performance allows learning of motor skills that interfere
+% Sheahan, Ingram, Zalalyte, and Wolpert
+% - This is an analysis script for assessing learning in 5 main groups of
+%   subjects.
 
 % Group 1: no imagery
 % Group 2: imagery fixation
@@ -700,6 +700,40 @@ for group = 1:ngroups
     xtickangle(45)
     box off;
     
+    % plot the after-effects as a barplot
+    figure(1111)
+    subplot(1,5,4:5);
+    if ((group~=G.IMAGERYTRANSFER) && (group~=G.NOIMAGERYTRANSFER))
+        
+        switch group
+            case G.NOIMAGERY
+                x = 3;
+            case G.IMAGERY
+                x = 4;
+            case G.IMAGERYNOFIX
+                x = 5;
+            case G.PLANNING
+                x = 2;
+            case G.FOLLOWTHROUGH
+                x = 1;
+        end
+        aftereffects_mean = mean(mean(mpeblock(end-post+1:end-post+2,:),1));
+        aftereffects_se = std(mean(mpeblock(end-post+1:end-post+2,:),1)) ./ sqrt(nsubj);
+        errorbar(x, -aftereffects_mean,aftereffects_se,'Color', colours(group,:), 'LineWidth',1); hold on;
+        bar(x, -aftereffects_mean,'FaceColor',colours(group,:),'EdgeColor',colours(group,:)); hold on;
+        if FLAGS.plotdots
+            for i=1:nsubj
+                plot(x, -mean(mpeblock(end-post+1:end-post+2,i),1), 'o','MarkerSize',4,'MarkerEdgeColor',colours2(group,:),'MarkerFaceColor',colours2(group,:)); hold on;
+            end
+        end
+        ylabel('After-effects (cm)');
+        axis([0 9 0 1.2]);
+        clear xticks; xticks([1:5])
+        xticklabels({'Follow through','Planning only','No MI','MI','MI no fixation'});
+        xtickangle(45)
+        box off;
+    end
+    
     %% Plot adaptation for each subject on the same figure (1 per group)
     pre=5;  exp=150; trans=20; post=3;
     
@@ -810,6 +844,7 @@ for group = 1:ngroups
             stats.imagine{group}(:,i) = adtransim(1:4,i);  % first 4 blocks of transfer phase
         end
     end
+    AdaptationGroupsFinalBlock{group} = adaptationsubjfinalblock;
     
     % Plot average +- se. adaptation across all subjects in group
     % average across subjects
@@ -938,7 +973,7 @@ for group = 1:ngroups
             
         case G.IMAGERYTRANSFER
             x = 6;
-             
+            
     end
     figure(1112)
     subplot(1,5,1:2)
@@ -1193,7 +1228,7 @@ for group = 1:ngroups
         end
     end
     
-    clearvars -except imaginegroupcount finaladapt AdaptationExposure MPEExposure MPEBaseline transferimagerydata colours2 G  Xmaintainease Xmaintain XMIQ Adaptation AdaptationDetail P MPE stats ngroups nsubj ntrial N S FLAGS Timing Experiment colours FrameData aftereffects  fh fh2 A M MI speed_series speed_error imduration execduration cfall chronometry imaginedurationgroups executiondurationgroups pre exp trans post
+    clearvars -except AdaptationGroupsFinalBlock imaginegroupcount finaladapt AdaptationExposure MPEExposure MPEBaseline transferimagerydata colours2 G  Xmaintainease Xmaintain XMIQ Adaptation AdaptationDetail P MPE stats ngroups nsubj ntrial N S FLAGS Timing Experiment colours FrameData aftereffects  fh fh2 A M MI speed_series speed_error imduration execduration cfall chronometry imaginedurationgroups executiondurationgroups pre exp trans post
 end
 
 %% Create another figure which combines the groups into n=16 supergroups
@@ -1271,7 +1306,7 @@ for i=1:length(plotgroups)
     shadeplot(linspace(pre,pre+exp,length(meanlearn)), meanlearn, selearn, '-',colours(group,:),0.3); hold on;
     plot([1,pre+exp],[0,0],'k'); hold on;
     axis([1,pre+exp+30,-5, 60]);
-    clear xticks; 
+    clear xticks;
     if plotloc==1
         ylabel('Adaptation (%)');
         xticks([pre,pre+exp]);
@@ -1287,9 +1322,139 @@ for i=1:length(plotgroups)
     if ((group==G.IMAGERYTRANSFER) || (group==G.NOIMAGERYTRANSFER))
         finaladapt_mean = mean(mean(stats.imagine{group}));
         finaladapt_se = std(mean(stats.imagine{group})) ./ sqrt(nsubj);
-        errorbar(pre+exp+15, finaladapt_mean,finaladapt_se,'k'); hold on;
+        errorbar(pre+exp+20, finaladapt_mean,finaladapt_se,'Color',colours(group,:)); hold on;
+        plot(pre+exp+20, finaladapt_mean, 'o','MarkerSize',5,'MarkerEdgeColor',colours(group,:), 'MarkerFaceColor','w'); hold on;
+        
+        finaladapt_mean = mean(mean(stats.finaladaptblock{group}));
+        finaladapt_se = std(mean(stats.finaladaptblock{group})) ./ sqrt(nsubj);
+        errorbar(pre+exp+8, finaladapt_mean,finaladapt_se,'Color',colours(group,:)); hold on;
+        plot(pre+exp+8, finaladapt_mean, 'o','MarkerSize',5,'MarkerEdgeColor',colours(group,:), 'MarkerFaceColor',colours(group,:)); hold on;
+    end
+end
+suptitle('Combined groups learning')
+%%
+figure(6000);
+
+% plot just the major colours in the combined transfer supergroup plot
+colours(G.NOIMAGERYTRANSFER,:) = colours(G.NOIMAGERY,:);
+%colours(G.IMAGERYTRANSFER,:) = colours(G.IMAGERY,:);
+
+
+plotgroups = [G.FOLLOWTHROUGH, G.PLANNING, G.NOIMAGERYTRANSFER, G.IMAGERYTRANSFER, G.IMAGERYNOFIX];
+
+for i=1:length(plotgroups)
+    group = plotgroups(i);
+    
+    switch i
+        case 1
+            plotloc = 1;
+        case 2
+            plotloc = 1;
+        case 3
+            plotloc = 2;
+        case 4
+            plotloc = 3;
+        case 5
+            plotloc = 4;
+    end
+    
+    % plot the planning group MPE and adaptation as reference
+    subplot(2,4,4+plotloc);
+    meanlearn = mean(MPEExposure{G.PLANNING},2);
+    plot(linspace(pre,pre+exp,length(meanlearn)), meanlearn, 'Color',colours(G.PLANNING,:)); hold on;
+    
+    subplot(2,4,plotloc);
+    meanlearn = mean(AdaptationExposure{G.PLANNING},2);
+    plot(linspace(pre,pre+exp,length(meanlearn)), meanlearn, 'Color',colours(G.PLANNING,:)); hold on;
+    
+    % plot MPE for each of the three subplots
+    subplot(2,4,4+plotloc);
+    meanlearn = mean(MPEExposure{group},2);
+    selearn = std(MPEExposure{group},0,2)./sqrt(size(MPEExposure{group},2));
+    shadeplot(linspace(pre,pre+exp,length(meanlearn)), meanlearn, selearn, '-',colours(group,:),0.3); hold on;
+    plot([1,pre+exp],[0,0],'k'); hold on;
+    axis([1,pre+exp+30, 1, 4]);
+    clear xticks; xticks([pre,pre+exp]);
+    xticklabels({'6','156'});
+    xticks([pre,pre+exp]);
+    xlabel('Blocks');
+    if plotloc==1
+        ylabel('MPE (cm)');
+    else
+        yticks([1,1.5,2,2.5,3]);
+        yticklabels({'','','','',''});
+    end
+    
+    % plot adaptation for each of the three subplots
+    subplot(2,4,plotloc);
+    meanlearn = mean(AdaptationExposure{group},2);
+    selearn = std(AdaptationExposure{group},0,2)./sqrt(size(AdaptationExposure{group},2));
+    shadeplot(linspace(pre,pre+exp,length(meanlearn)), meanlearn, selearn, '-',colours(group,:),0.3); hold on;
+    plot([1,pre+exp],[0,0],'k'); hold on;
+    axis([1,pre+exp+30,-10, 60]);
+    clear xticks;
+    if plotloc==1
+        ylabel('Adaptation (%)');
+        xticks([pre,pre+exp]);
+        xticklabels({'',''});
+    else
+        xticks([pre,pre+exp]);
+        xticklabels({'',''});
+        yticks([-10:10:60]);
+        yticklabels({'','','','','','',''});
+    end
+    
+    % plot the imagining trials response in transfer phase as a point
+    if ((group==G.IMAGERYTRANSFER) || (group==G.NOIMAGERYTRANSFER))
+        finaladapt_mean = mean(mean(stats.imagine{group}));
+        finaladapt_se = std(mean(stats.imagine{group})) ./ sqrt(nsubj);
+        errorbar(pre+exp+15, finaladapt_mean,finaladapt_se,'Color',colours(group,:)); hold on;
         plot(pre+exp+15, finaladapt_mean, 'o','MarkerSize',5,'MarkerEdgeColor',colours(group,:), 'MarkerFaceColor','w'); hold on;
     end
+end
+
+% plot the combined groups final adaptation level
+figure(1111)
+subplot(1,5,1:2)
+supergroup_noim_finaladapt = [AdaptationGroupsFinalBlock{G.NOIMAGERY},AdaptationGroupsFinalBlock{G.NOIMAGERYTRANSFER}];
+supergroup_im_finaladapt = [AdaptationGroupsFinalBlock{G.IMAGERY},AdaptationGroupsFinalBlock{G.IMAGERYTRANSFER}];
+errorbar(3, mean(supergroup_noim_finaladapt),std(supergroup_noim_finaladapt)./sqrt(length(supergroup_noim_finaladapt)),'Color',colours(1,:), 'LineWidth',1); hold on;
+bar(3, mean(supergroup_noim_finaladapt), 'EdgeColor',colours(group,:), 'FaceColor',colours(1,:)); hold on;
+if FLAGS.plotdots
+    for i=1:nsubj.*2
+        plot(x, supergroup_noim_finaladapt(i),'o','MarkerSize',4,'MarkerEdgeColor',colours2(1,:), 'MarkerFaceColor',colours2(1,:)); hold on
+    end
+end
+
+errorbar(4, mean(supergroup_im_finaladapt),std(supergroup_im_finaladapt)./sqrt(length(supergroup_im_finaladapt)),'Color',colours(2,:), 'LineWidth',1); hold on;
+bar(4, mean(supergroup_im_finaladapt), 'EdgeColor',colours(group,:), 'FaceColor',colours(2,:)); hold on;
+if FLAGS.plotdots
+    for i=1:nsubj.*2
+        plot(x, supergroup_noim_finaladapt(i),'o','MarkerSize',4,'MarkerEdgeColor',colours2(2,:), 'MarkerFaceColor',colours2(2,:)); hold on
+    end
+end
+
+plotgroups=[G.FOLLOWTHROUGH, G.PLANNING, G.IMAGERYNOFIX];
+plotpos = [1,2,5];
+for i=1:3
+    group = plotgroups(i);
+    axis([0 8 0 60])
+    
+    finaladapt_mean = mean(AdaptationGroupsFinalBlock{group});
+    finaladapt_se = std(AdaptationGroupsFinalBlock{group}) ./ sqrt(length(AdaptationGroupsFinalBlock{group}));
+    errorbar(plotpos(i), finaladapt_mean,finaladapt_se,'Color',colours(group,:), 'LineWidth',1); hold on;
+    bar(plotpos(i), finaladapt_mean, 'EdgeColor',colours(group,:), 'FaceColor',colours(group,:)); hold on;
+    if FLAGS.plotdots
+        for j=1:nsubj
+            plot(plotpos(i), AdaptationGroupsFinalBlock{group}(j),'o','MarkerSize',4,'MarkerEdgeColor',colours2(group,:), 'MarkerFaceColor',colours2(group,:)); hold on
+        end
+    end
+    axis([0 8 0 60])
+    ylabel('Adaptation (%)');
+    clear xticks; xticks([1:5])
+    xticklabels({'Follow through','Planning only','No MI','MI','MI no fixation'});
+    xtickangle(45)
+    box off;
 end
 
 %%
@@ -1355,12 +1520,50 @@ for group=1:ngroups
     
     % Print mean difference pre- to late-exposure for each learning measure
     mn = mean(mean(stats.finaladaptblock{group})- mean(stats.adaptbaseline{group}));
-    se = std(mean(stats.finaladaptblock{group})- mean(stats.adaptbaseline{group})) ./ sqrt(8);
-    %sprintf('Diff adaptation %s: %.2f  +/- %.2f', groupname{group}, mn, se)
+    se = stderr_meandifference(mean(stats.finaladaptblock{group}),mean(stats.adaptbaseline{group}));
+    sprintf('Diff adaptation %s: %.2f  +/- %.2f', groupname{group}, mn, se)
     
     mn = mean(aftereffects{group}'- mean(stats.mpebaseline{group})');
-    se = std(aftereffects{group}'- mean(stats.mpebaseline{group})') ./ sqrt(8);
-    %sprintf('Diff adaptation %s: %.2f  +/- %.4f', groupname{group}, mn, se)
+    se = stderr_meandifference(aftereffects{group}, mean(stats.mpebaseline{group}));
+    sprintf('Diff adaptation %s: %.2f  +/- %.4f', groupname{group}, mn, se)
+end
+
+
+%% Statistical analysis - learning for the two supergroups
+groupnamesuper = {groupname{:},'supergroup_noimagery','supergroup_imagery'};
+% super group no imagery
+stats.firstmpeblock{ngroups+1} = [stats.firstmpeblock{G.NOIMAGERY}, stats.firstmpeblock{G.NOIMAGERYTRANSFER}];
+stats.finalmpeblock{ngroups+1} = [stats.finalmpeblock{G.NOIMAGERY}, stats.finalmpeblock{G.NOIMAGERYTRANSFER}];
+stats.adaptbaseline{ngroups+1} = [stats.adaptbaseline{G.NOIMAGERY}, stats.adaptbaseline{G.NOIMAGERYTRANSFER}];
+stats.finaladaptblock{ngroups+1} = [stats.finaladaptblock{G.NOIMAGERY}, stats.finaladaptblock{G.NOIMAGERYTRANSFER}];
+stats.adaptbaseline0{ngroups+1} = [stats.adaptbaseline0{G.NOIMAGERY}, stats.adaptbaseline0{G.NOIMAGERYTRANSFER}];
+stats.finaladapt0block{ngroups+1} = [stats.finaladapt0block{G.NOIMAGERY}, stats.finaladapt0block{G.NOIMAGERYTRANSFER}];
+stats.mpebaseline{ngroups+1} =  [stats.mpebaseline{G.NOIMAGERY}, stats.mpebaseline{G.NOIMAGERYTRANSFER}];
+
+% super group imagery
+stats.firstmpeblock{ngroups+2} = [stats.firstmpeblock{G.IMAGERY}, stats.firstmpeblock{G.IMAGERYTRANSFER}];
+stats.finalmpeblock{ngroups+2} = [stats.finalmpeblock{G.IMAGERY}, stats.finalmpeblock{G.IMAGERYTRANSFER}];
+stats.adaptbaseline{ngroups+2} = [stats.adaptbaseline{G.IMAGERY}, stats.adaptbaseline{G.IMAGERYTRANSFER}];
+stats.finaladaptblock{ngroups+2} = [stats.finaladaptblock{G.IMAGERY}, stats.finaladaptblock{G.IMAGERYTRANSFER}];
+stats.adaptbaseline0{ngroups+2} = [stats.adaptbaseline0{G.IMAGERY}, stats.adaptbaseline0{G.IMAGERYTRANSFER}];
+stats.finaladapt0block{ngroups+2} = [stats.finaladapt0block{G.IMAGERY}, stats.finaladapt0block{G.IMAGERYTRANSFER}];
+stats.mpebaseline{ngroups+2} =  [stats.mpebaseline{G.IMAGERY}, stats.mpebaseline{G.IMAGERYTRANSFER}];
+
+
+for group=ngroups+1:ngroups+2
+    [~, statstable.mpe{group}] = anova_rm([squeeze(mean(stats.firstmpeblock{group}))', squeeze(mean(stats.finalmpeblock{group}))'],'off');
+    
+    % Compare MPE and adaptation pre- and late-exposure phase with paired ttests
+    [~, p.adaptation{group},~,statstable.adaptationtable{group}] = ttest(squeeze(mean(stats.adaptbaseline{group}))', squeeze(mean(stats.finaladaptblock{group}))');
+    [~, p.adaptation0{group},~,statstable.adaptation0onlytable{group}] = ttest(squeeze(mean(stats.adaptbaseline0{group}))', squeeze(mean(stats.finaladapt0block{group}))');
+    adaptstats.(groupnamesuper{group}) = [squeeze(mean(stats.adaptbaseline{group}))', squeeze(mean(stats.finaladaptblock{group}))'];
+    adaptstats0only.(groupnamesuper{group}) = [squeeze(mean(stats.adaptbaseline0{group}))', squeeze(mean(stats.finaladapt0block{group}))'];
+    mpestats.(groupnamesuper{group}) = [squeeze(mean(stats.firstmpeblock{group}))', squeeze(mean(stats.finalmpeblock{group}))'];
+    
+    % Print mean difference pre- to late-exposure for each learning measure
+    mn = mean(mean(stats.finaladaptblock{group})- mean(stats.adaptbaseline{group}));
+    se = stderr_meandifference(mean(stats.finaladaptblock{group}),mean(stats.adaptbaseline{group}));
+    sprintf('Diff adaptation %s: %.2f  +/- %.2f', groupnamesuper{group}, mn, se)
 end
 
 % compare adaptation within motor imagery transfer group: adaptation on FT vs imagery channels
@@ -1380,18 +1583,26 @@ poolnoimfix = [mean(stats.finaladaptblock{G.NOIMAGERY}), mean(stats.finaladaptbl
 
 % compare adaptation: pooled FT vs pooled imagery fixation groups
 [H,P,CI,STATS] = ttest2(poolft, poolimfix)
+se = stderr_meandifference(poolft,poolimfix);
+sprintf('Difference: %.2f +/- %.2f', mean(poolft)-mean(poolimfix), se)
 
 % compare adaptation: pooled imagery fixation vs pooled no imagery group
 [H,P,CI,STATS] = ttest2(poolimfix, poolnoimfix)
+se = stderr_meandifference(poolimfix,poolnoimfix);
+sprintf('Difference: %.2f +/- %.2f', mean(poolimfix)-mean(poolnoimfix), se)
 
 % compare adaptation: pooled imagery fixation vs imagery group
 [H,P,CI,STATS] = ttest2(poolimfix, mean(stats.finaladaptblock{G.IMAGERYNOFIX}))
+se = stderr_meandifference(poolimfix,mean(stats.finaladaptblock{G.IMAGERYNOFIX}));
+sprintf('Difference: %.2f +/- %.2f', mean(poolimfix)-mean(mean(stats.finaladaptblock{G.IMAGERYNOFIX})), se)
 
 % compare adaptation: pooled FT vs imagery channel trials (transfer group)
 [H,P,CI,STATS] = ttest2(poolft, mean(stats.imagine{G.IMAGERYTRANSFER}))
 
 % compare imagine trials adaptation: imagery transer vs no imagery transfer
 [H,P,CI,STATS] = ttest2(mean(stats.imagine{G.IMAGERYTRANSFER}), mean(stats.imagine{G.NOIMAGERYTRANSFER}))
+se = stderr_meandifference(mean(stats.imagine{G.IMAGERYTRANSFER}),mean(stats.imagine{G.NOIMAGERYTRANSFER}));
+sprintf('Difference: %.2f +/- %.2f', mean(mean(stats.imagine{G.IMAGERYTRANSFER}))-mean(mean(stats.imagine{G.NOIMAGERYTRANSFER})), se)
 
 %% Statistical analysis - compare other behavioural factors
 % These should all be well controlled
@@ -1427,36 +1638,77 @@ for i=1:ngroups
     indR = ind & Experiment{i}.TargetAngle==-45;
     
     % baseline peak speed by FT target
-    baseLeft.(groupname{i}) = mean(reshape(Timing{i}.peakspeed(indL), length(Timing{i}.peakspeed(indL))./nsubj, nsubj),1)';
-    baseRight.(groupname{i}) = mean(reshape(Timing{i}.peakspeed(indR), length(Timing{i}.peakspeed(indR))./nsubj, nsubj),1)';
-    [~, statstable.peakspeedtarget{i}] = anova_rm([baseLeft.(groupname{i}),baseRight.(groupname{i})],'off');
-    difference.peakspeedtarget(i) = mean(baseLeft.(groupname{i})) - mean(baseRight.(groupname{i}));
+    baseLeftPeakSpeed.(groupname{i}) = mean(reshape(Timing{i}.peakspeed(indL), length(Timing{i}.peakspeed(indL))./nsubj, nsubj),1)';
+    baseRightPeakSpeed.(groupname{i}) = mean(reshape(Timing{i}.peakspeed(indR), length(Timing{i}.peakspeed(indR))./nsubj, nsubj),1)';
+    [~, statstable.peakspeedtarget{i}] = anova_rm([baseLeftPeakSpeed.(groupname{i}),baseRightPeakSpeed.(groupname{i})],'off');
+    difference.peakspeedtarget(i) = mean(baseLeftPeakSpeed.(groupname{i})) - mean(baseRightPeakSpeed.(groupname{i}));
     
     % baseline duration by FT target
-    baseLeft.(groupname{i}) = mean(reshape(Timing{i}.duration(indL), length(Timing{i}.duration(indL))./nsubj, nsubj),1)';
-    baseRight.(groupname{i}) = mean(reshape(Timing{i}.duration(indR), length(Timing{i}.duration(indR))./nsubj, nsubj),1)';
-    [~, statstable.durationtarget{i}] = anova_rm([baseLeft.(groupname{i}),baseRight.(groupname{i})],'off');
-    difference.durationtarget(i) = mean(baseLeft.(groupname{i})) - mean(baseRight.(groupname{i}));
+    baseLeftDuration.(groupname{i}) = mean(reshape(Timing{i}.duration(indL), length(Timing{i}.duration(indL))./nsubj, nsubj),1)';
+    baseRightDuration.(groupname{i}) = mean(reshape(Timing{i}.duration(indR), length(Timing{i}.duration(indR))./nsubj, nsubj),1)';
+    [~, statstable.durationtarget{i}] = anova_rm([baseLeftDuration.(groupname{i}),baseRightDuration.(groupname{i})],'off');
+    difference.durationtarget(i) = mean(baseLeftDuration.(groupname{i})) - mean(baseRightDuration.(groupname{i}));
     
     % baseline path length by FT target
-    baseLeft.(groupname{i}) = mean(reshape(FrameData{i}.original.pathlength(indL), length(FrameData{i}.original.pathlength(indL))./nsubj, nsubj),1)';
-    baseRight.(groupname{i}) = mean(reshape(FrameData{i}.original.pathlength(indR), length(FrameData{i}.original.pathlength(indR))./nsubj, nsubj),1)';
-    [~, statstable.pathlengthtarget{i}] = anova_rm([baseLeft.(groupname{i}),baseRight.(groupname{i})],'off');
-    difference.pathlengthtarget(i) = mean(baseLeft.(groupname{i})) - mean(baseRight.(groupname{i}));
+    baseLeftPathLength.(groupname{i}) = mean(reshape(FrameData{i}.original.pathlength(indL), length(FrameData{i}.original.pathlength(indL))./nsubj, nsubj),1)';
+    baseRightPathLength.(groupname{i}) = mean(reshape(FrameData{i}.original.pathlength(indR), length(FrameData{i}.original.pathlength(indR))./nsubj, nsubj),1)';
+    [~, statstable.pathlengthtarget{i}] = anova_rm([baseLeftPathLength.(groupname{i}),baseRightPathLength.(groupname{i})],'off');
+    difference.pathlengthtarget(i) = mean(baseLeftPathLength.(groupname{i})) - mean(baseRightPathLength.(groupname{i}));
     
     % baseline dwell time by FT target (Note that this measure only makes sense for the full follow-through group)
-    baseLeft.(groupname{i}) = mean(reshape(Timing{i}.dwell(indL), length(Timing{i}.dwell(indL))./nsubj, nsubj),1)';
-    baseRight.(groupname{i}) = mean(reshape(Timing{i}.dwell(indR), length(Timing{i}.dwell(indR))./nsubj, nsubj),1)';
-    [~, statstable.dwelltarget{i}] = anova_rm([baseLeft.(groupname{i}),baseRight.(groupname{i})],'off');
-    difference.dwelltarget(i) = mean(baseLeft.(groupname{i})) - mean(baseRight.(groupname{i}));
+    baseLeftDwell.(groupname{i}) = mean(reshape(Timing{i}.dwell(indL), length(Timing{i}.dwell(indL))./nsubj, nsubj),1)';
+    baseRightDwell.(groupname{i}) = mean(reshape(Timing{i}.dwell(indR), length(Timing{i}.dwell(indR))./nsubj, nsubj),1)';
+    [~, statstable.dwelltarget{i}] = anova_rm([baseLeftDwell.(groupname{i}),baseRightDwell.(groupname{i})],'off');
+    difference.dwelltarget(i) = mean(baseLeftDwell.(groupname{i})) - mean(baseRightDwell.(groupname{i}));
     
     % baseline maximum lateral deviation by FT target
-    baseLeft.(groupname{i}) = mean(reshape(FrameData{i}.lateraldev(indL), length(FrameData{i}.lateraldev(indL))./nsubj, nsubj),1)';
-    baseRight.(groupname{i}) = mean(reshape(FrameData{i}.lateraldev(indR), length(FrameData{i}.lateraldev(indR))./nsubj, nsubj),1)';
-    [~, statstable.lateraldevtarget{i}] = anova_rm([baseLeft.(groupname{i}),baseRight.(groupname{i})],'off');
-    difference.lateraldevtarget(i) = mean(baseLeft.(groupname{i})) - mean(baseRight.(groupname{i}));
+    baseLeftLatDev.(groupname{i}) = mean(reshape(FrameData{i}.lateraldev(indL), length(FrameData{i}.lateraldev(indL))./nsubj, nsubj),1)';
+    baseRightLatDev.(groupname{i}) = mean(reshape(FrameData{i}.lateraldev(indR), length(FrameData{i}.lateraldev(indR))./nsubj, nsubj),1)';
+    [~, statstable.lateraldevtarget{i}] = anova_rm([baseLeftLatDev.(groupname{i}),baseRightLatDev.(groupname{i})],'off');
+    difference.lateraldevtarget(i) = mean(baseLeftLatDev.(groupname{i})) - mean(baseRightLatDev.(groupname{i}));
 end
 
+
+% repeat the above analysis for the two supergroups
+for group=ngroups+1:ngroups+2
+    
+    if (group==ngroups+1)  % no imagery super group
+        g1 = G.NOIMAGERY;
+        g2 = G.NOIMAGERYTRANSFER;
+    elseif (group==ngroups+2)
+        g1 = G.IMAGERY;
+        g2 = G.IMAGERYTRANSFER;
+    end
+    % baseline peak speed by FT target
+    baseLeftPeakSpeed.(groupnamesuper{group}) = [baseLeftPeakSpeed.(groupnamesuper{g1}); baseLeftPeakSpeed.(groupnamesuper{g2})];
+    baseRightPeakSpeed.(groupnamesuper{group}) = [baseRightPeakSpeed.(groupnamesuper{g1}); baseRightPeakSpeed.(groupnamesuper{g2})];
+    [~, statstable.peakspeedtarget{group}] = anova_rm([baseLeftPeakSpeed.(groupnamesuper{group}),baseRightPeakSpeed.(groupnamesuper{group})],'off');
+    difference.peakspeedtarget(group) = mean(baseLeftPeakSpeed.(groupnamesuper{group})) - mean(baseRightPeakSpeed.(groupnamesuper{group}));
+    
+    % baseline duration by FT target
+    baseLeftDuration.(groupnamesuper{group}) = [baseLeftDuration.(groupnamesuper{g1}); baseLeftDuration.(groupnamesuper{g2})];
+    baseRightDuration.(groupnamesuper{group}) = [baseRightDuration.(groupnamesuper{g1}); baseRightDuration.(groupnamesuper{g2})];
+    [~, statstable.durationtarget{group}] = anova_rm([baseLeftDuration.(groupnamesuper{group}),baseRightDuration.(groupnamesuper{group})],'off');
+    difference.durationtarget(group) = mean(baseLeftDuration.(groupnamesuper{group})) - mean(baseRightDuration.(groupnamesuper{group}));
+    
+    % baseline path length by FT target
+    baseLeftPathLength.(groupnamesuper{group}) = [baseLeftPathLength.(groupnamesuper{g1}); baseLeftPathLength.(groupnamesuper{g2})];
+    baseRightPathLength.(groupnamesuper{group}) = [baseRightPathLength.(groupnamesuper{g1}); baseRightPathLength.(groupnamesuper{g2})];
+    [~, statstable.pathlengthtarget{group}] = anova_rm([baseLeftPathLength.(groupnamesuper{group}),baseRightPathLength.(groupnamesuper{group})],'off');
+    difference.pathlengthtarget(group) = mean(baseLeftPathLength.(groupnamesuper{group})) - mean(baseRightPathLength.(groupnamesuper{group}));
+    
+    % baseline dwell time by FT target (Note that this measure only makes sense for the full follow-through group)
+    baseLeftDwell.(groupnamesuper{group}) = [baseLeftDwell.(groupnamesuper{g1}); baseLeftDwell.(groupnamesuper{g2})];
+    baseRightDwell.(groupnamesuper{group}) = [baseRightDwell.(groupnamesuper{g1}); baseRightDwell.(groupnamesuper{g2})];
+    [~, statstable.dwelltarget{group}] = anova_rm([baseLeftDwell.(groupnamesuper{group}),baseRightDwell.(groupnamesuper{group})],'off');
+    difference.dwelltarget(group) = mean(baseLeftDwell.(groupnamesuper{group})) - mean(baseRightDwell.(groupnamesuper{group}));
+    
+    % baseline maximum lateral deviation by FT target
+    baseLeftLatDev.(groupnamesuper{group}) = [baseLeftLatDev.(groupnamesuper{g1}); baseLeftLatDev.(groupnamesuper{g2})];
+    baseRightLatDev.(groupnamesuper{group}) = [baseRightLatDev.(groupnamesuper{g1}); baseRightLatDev.(groupnamesuper{g2})];
+    [~, statstable.lateraldevtarget{group}] = anova_rm([baseLeftLatDev.(groupnamesuper{group}),baseRightLatDev.(groupnamesuper{group})],'off');
+    difference.lateraldevtarget(group) = mean(baseLeftLatDev.(groupnamesuper{group})) - mean(baseRightLatDev.(groupnamesuper{group}));
+end  
 %%
 
 toc
