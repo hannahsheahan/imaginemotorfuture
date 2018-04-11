@@ -1,16 +1,16 @@
 %% Imagery of movements immediately following performance allows learning of motor skills that interfere
 % Sheahan, Ingram, Zalalyte, and Wolpert
-% - This is an analysis script for assessing learning in 5 main groups of
-%   subjects.
+% - This is an analysis script for assessing learning in 5 main groups of subjects.
 
-% Group 1: no imagery
-% Group 2: imagery fixation
-% Group 3: imagery no fixation
-% Group 4: planning only
-% Group 5: full follow-through
-%----
-% Group 6: no imagery transfer
-% Group 7: imagery transfer
+% Group 1: no imagery (first n=8 of no MI group)
+% Group 2: imagery (first n=8 of MI group)
+% Group 3: imagery no fixation (n=8)
+% Group 4: planning only (n=8)
+% Group 5: full follow-through (n=8)
+%------ 
+% (Final two groups have longer experiments, initial analysis in separate script 'main_transfergroups.m')
+% Group 6: no imagery transfer (second n=8 of no MI group)
+% Group 7: imagery transfer (second n=8 of MI group)
 
 % Author: Hannah Sheahan, sheahan.hannah@gmail.com
 % Date:   Jan 2018
@@ -211,6 +211,7 @@ for group = 1:ngroups  % load in by group
         
         clear  posx posy velx vely forcex forcey ind1 ind2 state trialtime pathlength
         
+        %----------------------------
         %% Rotate kinematics from each start position
         startangle = -D.HomeAngle.*(pi/180);
         startpos   = repmat(reshape(D.StartPosition(:,1:2)', [2,1,N]),[1,nsamp,1]);
@@ -245,6 +246,7 @@ for group = 1:ngroups  % load in by group
         original.posx = squeeze(original.pos(1,:,:));
         original.posy = squeeze(original.pos(2,:,:));
         
+        %----------------------------
         %% Calculate MPE and adaptation
         
         % calculate mpe
@@ -292,11 +294,11 @@ for group = 1:ngroups  % load in by group
             misstrialrate(i) = max(D.MissTrials(ind(1):ind(2))) ./ (max(D.MissTrials(ind(1):ind(2)))+ntrial);
         end
         
-        tolerance = 3;   % cm. Same metric for hand overshoot and breaks in fixation.
+        tolerance = 3;                                                % cm. Same metric for hand overshoot and breaks in fixation.
         
         % percentage of overshot trials per subject on regular exposure trials (not fixation break trials)
         %(NB: overshot = if subject travels 3cm+ in the rotated +y direction after the viapoint)
-        targetdist = 12;
+        targetdist = 12;                                              % cm. Distance from start position of via-point target
         overdistance = original.posy - repmat(targetdist,size(original.posy));
         
         ch = (original.state >= S.STATE_MOVING1);                     % after hitting the via-point
@@ -407,6 +409,7 @@ for group = 1:ngroups  % load in by group
             duration(ind) = duration(ind) - 0.50;             % if an experiment where we record all the feedback period, remove this period from the 'moving' duration
             FTduration(ind) = FTduration(ind) - 0.50;
         end
+        
         % find dwell time at via-point
         viapos = repmat([0;targetdist],[1,size(original.posx)]);
         viaradius = 1.25;
@@ -434,7 +437,7 @@ for group = 1:ngroups  % load in by group
         timing.FTduration = FTduration;
         timing.halfwayperr = halfwayperr;
         timing.overshootrate = overshootrate;
-        %timing.peakspeedch = peakspeedch;
+        %timing.peakspeedch = peakspeedch;                  % these take up a lot of space if you save them, remain purely for interest
         %timing.peakspeedex = peakspeedex;
         %timing.rxtime = rxtime;
         %timing.appeartime = appeartime;
@@ -1528,7 +1531,7 @@ for group=1:ngroups
     sprintf('Diff adaptation %s: %.2f  +/- %.4f', groupname{group}, mn, se)
 end
 
-
+%------------------------------------
 %% Statistical analysis - learning for the two supergroups
 groupnamesuper = {groupname{:},'supergroup_noimagery','supergroup_imagery'};
 % super group no imagery
@@ -1548,7 +1551,6 @@ stats.finaladaptblock{ngroups+2} = [stats.finaladaptblock{G.IMAGERY}, stats.fina
 stats.adaptbaseline0{ngroups+2} = [stats.adaptbaseline0{G.IMAGERY}, stats.adaptbaseline0{G.IMAGERYTRANSFER}];
 stats.finaladapt0block{ngroups+2} = [stats.finaladapt0block{G.IMAGERY}, stats.finaladapt0block{G.IMAGERYTRANSFER}];
 stats.mpebaseline{ngroups+2} =  [stats.mpebaseline{G.IMAGERY}, stats.mpebaseline{G.IMAGERYTRANSFER}];
-
 
 for group=ngroups+1:ngroups+2
     [~, statstable.mpe{group}] = anova_rm([squeeze(mean(stats.firstmpeblock{group}))', squeeze(mean(stats.finalmpeblock{group}))'],'off');
@@ -1604,6 +1606,8 @@ sprintf('Difference: %.2f +/- %.2f', mean(poolimfix)-mean(mean(stats.finaladaptb
 se = stderr_meandifference(mean(stats.imagine{G.IMAGERYTRANSFER}),mean(stats.imagine{G.NOIMAGERYTRANSFER}));
 sprintf('Difference: %.2f +/- %.2f', mean(mean(stats.imagine{G.IMAGERYTRANSFER}))-mean(mean(stats.imagine{G.NOIMAGERYTRANSFER})), se)
 
+
+%------------------------------------
 %% Statistical analysis - compare other behavioural factors
 % These should all be well controlled
 
@@ -1625,7 +1629,7 @@ poolimfix_wait = [mean(Timing{G.IMAGERYTRANSFER}.imagineduration), mean(Timing{G
 poolnoim_wait = [mean(Timing{G.NOIMAGERY}.imagineduration), mean(Timing{G.NOIMAGERYTRANSFER}.imagineduration)];
 [H,P,CI,STATS] = ttest2(poolimfix_wait, poolnoim_wait)
 
-
+%------------------------------------
 %% Statistical analysis - Baseline kinematics by Left vs Right followthrough
 % check for baseline difference for L vs R follow targets for 4
 % kinematic variables in each group. Note that this give 10 datapoints per
