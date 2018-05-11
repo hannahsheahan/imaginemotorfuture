@@ -1,16 +1,16 @@
 %% Imagery of movements immediately following performance allows learning of motor skills that interfere
 % Sheahan, Ingram, Zalalyte, and Wolpert
-% - This is an analysis script for assessing learning in 5 main groups of subjects.
+% - This is an analysis script for assessing learning in 5 main groups of
+%   subjects.
 
-% Group 1: no imagery (first n=8 of no MI group)
-% Group 2: imagery (first n=8 of MI group)
-% Group 3: imagery no fixation (n=8)
-% Group 4: planning only (n=8)
-% Group 5: full follow-through (n=8)
-%------ 
-% (Final two groups have longer experiments, initial analysis in separate script 'main_transfergroups.m')
-% Group 6: no imagery transfer (second n=8 of no MI group)
-% Group 7: imagery transfer (second n=8 of MI group)
+% Group 1: no imagery
+% Group 2: imagery fixation
+% Group 3: imagery no fixation
+% Group 4: planning only
+% Group 5: full follow-through
+%----
+% Group 6: no imagery transfer
+% Group 7: imagery transfer
 
 % Author: Hannah Sheahan, sheahan.hannah@gmail.com
 % Date:   Jan 2018
@@ -211,7 +211,6 @@ for group = 1:ngroups  % load in by group
         
         clear  posx posy velx vely forcex forcey ind1 ind2 state trialtime pathlength
         
-        %----------------------------
         %% Rotate kinematics from each start position
         startangle = -D.HomeAngle.*(pi/180);
         startpos   = repmat(reshape(D.StartPosition(:,1:2)', [2,1,N]),[1,nsamp,1]);
@@ -246,7 +245,6 @@ for group = 1:ngroups  % load in by group
         original.posx = squeeze(original.pos(1,:,:));
         original.posy = squeeze(original.pos(2,:,:));
         
-        %----------------------------
         %% Calculate MPE and adaptation
         
         % calculate mpe
@@ -294,11 +292,11 @@ for group = 1:ngroups  % load in by group
             misstrialrate(i) = max(D.MissTrials(ind(1):ind(2))) ./ (max(D.MissTrials(ind(1):ind(2)))+ntrial);
         end
         
-        tolerance = 3;                                                % cm. Same metric for hand overshoot and breaks in fixation.
+        tolerance = 3;   % cm. Same metric for hand overshoot and breaks in fixation.
         
         % percentage of overshot trials per subject on regular exposure trials (not fixation break trials)
         %(NB: overshot = if subject travels 3cm+ in the rotated +y direction after the viapoint)
-        targetdist = 12;                                              % cm. Distance from start position of via-point target
+        targetdist = 12;
         overdistance = original.posy - repmat(targetdist,size(original.posy));
         
         ch = (original.state >= S.STATE_MOVING1);                     % after hitting the via-point
@@ -409,7 +407,6 @@ for group = 1:ngroups  % load in by group
             duration(ind) = duration(ind) - 0.50;             % if an experiment where we record all the feedback period, remove this period from the 'moving' duration
             FTduration(ind) = FTduration(ind) - 0.50;
         end
-        
         % find dwell time at via-point
         viapos = repmat([0;targetdist],[1,size(original.posx)]);
         viaradius = 1.25;
@@ -437,7 +434,7 @@ for group = 1:ngroups  % load in by group
         timing.FTduration = FTduration;
         timing.halfwayperr = halfwayperr;
         timing.overshootrate = overshootrate;
-        %timing.peakspeedch = peakspeedch;                  % these take up a lot of space if you save them, remain purely for interest
+        %timing.peakspeedch = peakspeedch;
         %timing.peakspeedex = peakspeedex;
         %timing.rxtime = rxtime;
         %timing.appeartime = appeartime;
@@ -647,6 +644,7 @@ for group = 1:ngroups
     
     
     % plot another figure that separates out the learning by group
+    %{
     figure(1100)
     subplot(2,ngroups,x);
     shadeplot(linspace(1,exp,length(mpeblockexp_mean)), mpeblockexp_mean, mpeblockexp_se,'-',colours(group,:),0.3); hold all;  % exposure
@@ -665,6 +663,7 @@ for group = 1:ngroups
             plot(linspace(1,exp,length(mpeblockexp_mean)), mpeblockexp_mean,'Color',colours(group,:)); hold all;
         end
     end
+    %}
     
     % fix the desired order for each group in the barplot
     switch group
@@ -730,7 +729,7 @@ for group = 1:ngroups
             end
         end
         ylabel('After-effects (cm)');
-        axis([0 9 0 1.2]);
+        axis([0 8 0 1.2]);
         clear xticks; xticks([1:5])
         xticklabels({'Follow through','Planning only','No MI','MI','MI no fixation'});
         xtickangle(45)
@@ -861,14 +860,32 @@ for group = 1:ngroups
         
         % plot imagining force expression
         figure(1113)
-        %subplot(1,5,3)
+        subplot(1,5,1:2)
         bar(group-4, mean(mean(stats.imagine{group})),'EdgeColor',colours(group,:), 'FaceColor',colours(group,:)); hold on
         errorbar(group-4, mean(mean(stats.imagine{group})),std(mean(stats.imagine{group}))./sqrt(length(mean(stats.imagine{group}))), 'Color',colours(group,:), 'LineWidth',1); hold on
-        axis([0 4 -10 80])
+        axis([0 5 0 60])
         if FLAGS.plotdots
             for i=1:nsubj
                 plot(group-4, mean(stats.imagine{group}(:,i)), 'o','MarkerSize',4,'MarkerEdgeColor',colours2(group,:),'MarkerFaceColor',colours2(group,:)); hold on;
             end
+        end
+        
+        % plot transfer within the imagery transfer subjects
+        if (group==G.IMAGERYTRANSFER)
+            bar(4, mean(mean(stats.transfer{group})),'EdgeColor',colours(group,:), 'FaceColor',colours(group,:)); hold on
+            errorbar(4, mean(mean(stats.transfer{group})),std(mean(stats.transfer{group}))./sqrt(length(mean(stats.transfer{group}))), 'Color',colours(group,:), 'LineWidth',1); hold on
+            %if FLAGS.plotdots
+                for i=1:nsubj
+                    plot(3, mean(stats.imagine{group}(:,i)), 'o','MarkerSize',4,'MarkerEdgeColor',colours2(group,:),'MarkerFaceColor',colours2(group,:)); hold on;
+                    plot(4, mean(stats.transfer{group}(:,i)), 'o','MarkerSize',4,'MarkerEdgeColor',colours2(group,:),'MarkerFaceColor',colours2(group,:)); hold on;
+                    
+                    % plot the transfer lines
+                    transferlines(1,i)=mean(stats.imagine{group}(:,i));
+                    transferlines(2,i)=mean(stats.transfer{group}(:,i));
+                    plot([3,4], transferlines(:,i),'k'); hold on;
+                end
+            %end
+            
         end
     end
     
@@ -919,6 +936,7 @@ for group = 1:ngroups
     
     % plot another figure of learning that separates out groups and only
     % includes the exposure phase
+    %{
     figure(1100)
     subplot(2,ngroups,ngroups+x);
     shadeplot(linspace(1,exp,length(adaptblockexp_mean)), adaptblockexp_mean, adaptblockexp_se,'-',colours(group,:),0.3); hold all;  % exposure
@@ -937,7 +955,7 @@ for group = 1:ngroups
             plot(linspace(1,exp,length(adaptblockexp_mean)), adaptblockexp_mean,'Color',colours(group,:)); hold all;
         end
     end
-    
+    %}
     
     % plot the average final adaptation level in a barplot
     switch group
@@ -956,7 +974,7 @@ for group = 1:ngroups
             % plot the pooled FT and planning only groups final adaptation
             % and compare to MI transfer channels
             figure(1113)
-            %subplot(1,5,3)  % this should come out dark blue, which is appropriate since coming a grey and a blue group
+            subplot(1,5,1:2) 
             bar(1, mean(poolFT),'EdgeColor',colours(5,:), 'FaceColor',colours(5,:)); hold on
             errorbar(1, mean(poolFT),std(poolFT)./sqrt(length(poolFT)), 'Color',colours(5,:), 'LineWidth',1); hold on
             if FLAGS.plotdots
@@ -964,12 +982,14 @@ for group = 1:ngroups
                     plot(1, poolFT(i),'o','MarkerSize',4,'MarkerEdgeColor','k', 'MarkerFaceColor','k'); hold on
                 end
             end
-            axis([0.2 2.7 -10 80]);
-            clear xticks; xticks([1:3])
-            xticklabels({'FT channels (pooled FT)','MI channels (MI transfer)','No MI channels (No MI transfer)'});
+            axis([0.2 4.7 0 60]);
+            clear xticks; xticks([1:4])
+            xticklabels({'FT pooled','No MI channels','MI imagined FT channels', 'MI executed FT channels'});
             xtickangle(45)
             ylabel('Adaptation (%)');
             box off;
+            
+            
             
         case G.NOIMAGERYTRANSFER
             x = 4;
@@ -1229,6 +1249,7 @@ for group = 1:ngroups
             % restore the planning only group's timing data
             timing = Timing{group};
         end
+        suptitle('Final adaptation did not correlate with imagery measures')
     end
     
     clearvars -except AdaptationGroupsFinalBlock imaginegroupcount finaladapt AdaptationExposure MPEExposure MPEBaseline transferimagerydata colours2 G  Xmaintainease Xmaintain XMIQ Adaptation AdaptationDetail P MPE stats ngroups nsubj ntrial N S FLAGS Timing Experiment colours FrameData aftereffects  fh fh2 A M MI speed_series speed_error imduration execduration cfall chronometry imaginedurationgroups executiondurationgroups pre exp trans post
@@ -1335,16 +1356,15 @@ for i=1:length(plotgroups)
     end
 end
 suptitle('Combined groups learning')
-%%
-figure(6000);
 
+%% Plot just the follow-through,planning only and transfer sub-groups
 % plot just the major colours in the combined transfer supergroup plot
 colours(G.NOIMAGERYTRANSFER,:) = colours(G.NOIMAGERY,:);
 %colours(G.IMAGERYTRANSFER,:) = colours(G.IMAGERY,:);
-
-
 plotgroups = [G.FOLLOWTHROUGH, G.PLANNING, G.NOIMAGERYTRANSFER, G.IMAGERYTRANSFER, G.IMAGERYNOFIX];
 
+%{
+figure(6000);
 for i=1:length(plotgroups)
     group = plotgroups(i);
     
@@ -1415,6 +1435,7 @@ for i=1:length(plotgroups)
         plot(pre+exp+15, finaladapt_mean, 'o','MarkerSize',5,'MarkerEdgeColor',colours(group,:), 'MarkerFaceColor','w'); hold on;
     end
 end
+%}
 
 % plot the combined groups final adaptation level
 figure(1111)
@@ -1422,7 +1443,7 @@ subplot(1,5,1:2)
 supergroup_noim_finaladapt = [AdaptationGroupsFinalBlock{G.NOIMAGERY},AdaptationGroupsFinalBlock{G.NOIMAGERYTRANSFER}];
 supergroup_im_finaladapt = [AdaptationGroupsFinalBlock{G.IMAGERY},AdaptationGroupsFinalBlock{G.IMAGERYTRANSFER}];
 errorbar(3, mean(supergroup_noim_finaladapt),std(supergroup_noim_finaladapt)./sqrt(length(supergroup_noim_finaladapt)),'Color',colours(1,:), 'LineWidth',1); hold on;
-bar(3, mean(supergroup_noim_finaladapt), 'EdgeColor',colours(group,:), 'FaceColor',colours(1,:)); hold on;
+bar(3, mean(supergroup_noim_finaladapt), 'EdgeColor',colours(1,:), 'FaceColor',colours(1,:)); hold on;
 if FLAGS.plotdots
     for i=1:nsubj.*2
         plot(x, supergroup_noim_finaladapt(i),'o','MarkerSize',4,'MarkerEdgeColor',colours2(1,:), 'MarkerFaceColor',colours2(1,:)); hold on
@@ -1430,7 +1451,7 @@ if FLAGS.plotdots
 end
 
 errorbar(4, mean(supergroup_im_finaladapt),std(supergroup_im_finaladapt)./sqrt(length(supergroup_im_finaladapt)),'Color',colours(2,:), 'LineWidth',1); hold on;
-bar(4, mean(supergroup_im_finaladapt), 'EdgeColor',colours(group,:), 'FaceColor',colours(2,:)); hold on;
+bar(4, mean(supergroup_im_finaladapt), 'EdgeColor',colours(2,:), 'FaceColor',colours(2,:)); hold on;
 if FLAGS.plotdots
     for i=1:nsubj.*2
         plot(x, supergroup_noim_finaladapt(i),'o','MarkerSize',4,'MarkerEdgeColor',colours2(2,:), 'MarkerFaceColor',colours2(2,:)); hold on
@@ -1531,7 +1552,7 @@ for group=1:ngroups
     sprintf('Diff adaptation %s: %.2f  +/- %.4f', groupname{group}, mn, se)
 end
 
-%------------------------------------
+
 %% Statistical analysis - learning for the two supergroups
 groupnamesuper = {groupname{:},'supergroup_noimagery','supergroup_imagery'};
 % super group no imagery
@@ -1551,6 +1572,7 @@ stats.finaladaptblock{ngroups+2} = [stats.finaladaptblock{G.IMAGERY}, stats.fina
 stats.adaptbaseline0{ngroups+2} = [stats.adaptbaseline0{G.IMAGERY}, stats.adaptbaseline0{G.IMAGERYTRANSFER}];
 stats.finaladapt0block{ngroups+2} = [stats.finaladapt0block{G.IMAGERY}, stats.finaladapt0block{G.IMAGERYTRANSFER}];
 stats.mpebaseline{ngroups+2} =  [stats.mpebaseline{G.IMAGERY}, stats.mpebaseline{G.IMAGERYTRANSFER}];
+
 
 for group=ngroups+1:ngroups+2
     [~, statstable.mpe{group}] = anova_rm([squeeze(mean(stats.firstmpeblock{group}))', squeeze(mean(stats.finalmpeblock{group}))'],'off');
@@ -1606,8 +1628,6 @@ sprintf('Difference: %.2f +/- %.2f', mean(poolimfix)-mean(mean(stats.finaladaptb
 se = stderr_meandifference(mean(stats.imagine{G.IMAGERYTRANSFER}),mean(stats.imagine{G.NOIMAGERYTRANSFER}));
 sprintf('Difference: %.2f +/- %.2f', mean(mean(stats.imagine{G.IMAGERYTRANSFER}))-mean(mean(stats.imagine{G.NOIMAGERYTRANSFER})), se)
 
-
-%------------------------------------
 %% Statistical analysis - compare other behavioural factors
 % These should all be well controlled
 
@@ -1629,7 +1649,7 @@ poolimfix_wait = [mean(Timing{G.IMAGERYTRANSFER}.imagineduration), mean(Timing{G
 poolnoim_wait = [mean(Timing{G.NOIMAGERY}.imagineduration), mean(Timing{G.NOIMAGERYTRANSFER}.imagineduration)];
 [H,P,CI,STATS] = ttest2(poolimfix_wait, poolnoim_wait)
 
-%------------------------------------
+
 %% Statistical analysis - Baseline kinematics by Left vs Right followthrough
 % check for baseline difference for L vs R follow targets for 4
 % kinematic variables in each group. Note that this give 10 datapoints per
